@@ -1,0 +1,133 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Smart Rapor Pro | Future Analytics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    screens: { 'xs': '400px' },
+                    borderRadius: { '4xl': '2rem', '5xl': '3rem' },
+                    colors: {
+                        indigo: { 50: '#f0f3ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#312e81' },
+                        slate: { 950: '#020617' }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root { scroll-behavior: smooth; }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            transition: background-color 0.4s ease, color 0.4s ease;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none;
+        }
+        .tech-font { font-family: 'JetBrains Mono', monospace; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .dark .glass {
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        @media print {
+            @page { 
+                margin: 20mm; 
+                size: A4; 
+            }
+            body { 
+                background: white !important; 
+                color: black !important; 
+                font-size: 12pt;
+            }
+            .print-hide { display: none !important; }
+            .print-block { display: block !important; }
+            main { 
+                padding: 0 !important; 
+                max-width: 100% !important; 
+                margin: 0 !important; 
+            }
+            .print-container {
+                width: 100%;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+            table { 
+                width: 100% !important; 
+                border-collapse: collapse !important; 
+                margin-bottom: 20px;
+            }
+            th, td { 
+                border: 1px solid #000 !important; 
+                padding: 8px !important; 
+                color: black !important; 
+                text-align: left;
+            }
+            th {
+                background-color: #f3f4f6 !important;
+                -webkit-print-color-adjust: exact;
+            }
+            .tech-font { 
+                font-family: 'Courier New', Courier, monospace !important; 
+                font-weight: bold !important; 
+            }
+            .rounded-5xl, .rounded-4xl, .rounded-3xl, .rounded-full, .rounded-2xl { 
+                border-radius: 0 !important; 
+            }
+            .shadow-2xl, .shadow-3xl, .shadow-lg { 
+                box-shadow: none !important; 
+            }
+            .border-indigo-600 {
+                border-color: black !important;
+            }
+            .text-indigo-600, .text-indigo-500, .text-emerald-600, .text-rose-500 {
+                color: black !important;
+            }
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "framer-motion": "https://esm.sh/framer-motion@^11.11.17"
+  }
+}
+</script>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50 selection:bg-indigo-500/20 antialiased overflow-x-hidden">
+    <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
