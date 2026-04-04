@@ -515,18 +515,22 @@ const App: React.FC = () => {
               const active = activeSemesterId === s.id;
               const status = getSemesterStatus(s);
               return (
-                <button key={s.id} onClick={() => setActiveSemesterId(s.id)}
-                  className={`flex-shrink-0 px-6 md:px-8 py-3 md:py-4 rounded-2xl md:rounded-3xl font-bold text-[10px] md:text-xs uppercase tracking-widest transition-all border-2 ${
-                    active ? 'bg-indigo-600 border-indigo-600 text-white shadow-xl scale-105' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400 hover:border-indigo-400'
+                <motion.button 
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  key={s.id} 
+                  onClick={() => setActiveSemesterId(s.id)}
+                  className={`flex-shrink-0 px-6 md:px-8 py-3 md:py-4 rounded-2xl md:rounded-3xl font-bold text-[10px] md:text-xs uppercase tracking-widest transition-colors border-2 ${
+                    active ? 'bg-indigo-600 border-indigo-600 text-white shadow-xl' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400 hover:border-indigo-400'
                   }`}>
                   SMT {s.id} {status === 'complete' && '✓'}
-                </button>
+                </motion.button>
               );
             })}
           </div>
 
           <AnimatePresence mode="wait">
-            <motion.div key={activeSemesterId} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }}
+            <motion.div key={activeSemesterId} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}
               className="bg-white dark:bg-slate-900 rounded-[2.5rem] md:rounded-[3.5rem] p-6 md:p-14 shadow-2xl border border-slate-100 dark:border-slate-800">
               
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 md:mb-12">
@@ -537,9 +541,13 @@ const App: React.FC = () => {
                   </p>
                 </div>
                 {activeSemesterId === 1 && (
-                  <button onClick={handleAddSubject} className="w-full md:w-auto px-8 py-4 bg-indigo-600 text-white rounded-2xl md:rounded-[1.5rem] font-bold text-xs uppercase tracking-widest shadow-xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-2">
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleAddSubject} 
+                    className="w-full md:w-auto px-8 py-4 bg-indigo-600 text-white rounded-2xl md:rounded-[1.5rem] font-bold text-xs uppercase tracking-widest shadow-xl hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
                     <Plus size={16} strokeWidth={3} /> {t.addSubject}
-                  </button>
+                  </motion.button>
                 )}
               </div>
 
@@ -559,12 +567,20 @@ const App: React.FC = () => {
                     </div>
                     {activeSemesterId === 1 && (
                       <div className="flex flex-col sm:flex-row gap-4 mt-2 w-full sm:w-auto px-4">
-                        <button onClick={handleUseTemplate} className="w-full sm:w-auto px-8 py-4 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 rounded-2xl font-bold shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-xs">
+                        <motion.button 
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={handleUseTemplate} 
+                          className="w-full sm:w-auto px-8 py-4 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 rounded-2xl font-bold shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 uppercase tracking-widest text-xs">
                           <Plus size={18} /> {t.useTemplate}
-                        </button>
-                        <button onClick={handleAddSubject} className="w-full sm:w-auto px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-md hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-xs">
+                        </motion.button>
+                        <motion.button 
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={handleAddSubject} 
+                          className="w-full sm:w-auto px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-md hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 uppercase tracking-widest text-xs">
                           <Plus size={18} /> {t.addSubject}
-                        </button>
+                        </motion.button>
                       </div>
                     )}
                   </div>
@@ -611,9 +627,13 @@ const App: React.FC = () => {
                         </div>
 
                         {activeSemesterId === 1 && (
-                          <button onClick={() => handleDeleteSubject(sub.id)} className="w-full sm:w-auto mt-2 sm:mt-0 p-3 text-slate-400 hover:text-rose-500 bg-white dark:bg-slate-800 sm:bg-transparent rounded-xl sm:rounded-none border-2 border-slate-200 dark:border-slate-700 sm:border-none transition-colors flex items-center justify-center gap-2">
+                          <motion.button 
+                            whileHover={{ scale: 1.1, color: '#f43f5e' }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => handleDeleteSubject(sub.id)} 
+                            className="w-full sm:w-auto mt-2 sm:mt-0 p-3 text-slate-400 bg-white dark:bg-slate-800 sm:bg-transparent rounded-xl sm:rounded-none border-2 border-slate-200 dark:border-slate-700 sm:border-none transition-colors flex items-center justify-center gap-2">
                             <X size={20} strokeWidth={3} /> <span className="sm:hidden font-bold text-xs uppercase tracking-widest">{t.deleteLabel}</span>
-                          </button>
+                          </motion.button>
                         )}
                       </div>
                     </motion.div>
@@ -629,9 +649,13 @@ const App: React.FC = () => {
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
             <div className="p-8 md:p-10 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6">
               <h4 className="text-xl md:text-2xl font-bold uppercase tracking-tight">{t.diagnosisTable}</h4>
-              <button onClick={() => window.print()} className="px-6 md:px-8 py-3 md:py-4 bg-indigo-600 text-white rounded-xl md:rounded-2xl font-bold text-[10px] md:text-xs uppercase tracking-widest hover:-translate-y-1 transition-all print-hide flex items-center gap-2">
+              <motion.button 
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => window.print()} 
+                className="px-6 md:px-8 py-3 md:py-4 bg-indigo-600 text-white rounded-xl md:rounded-2xl font-bold text-[10px] md:text-xs uppercase tracking-widest transition-colors print-hide flex items-center gap-2">
                 <Download size={16} strokeWidth={3} /> {t.exportPdf}
-              </button>
+              </motion.button>
             </div>
             <div className="overflow-x-auto no-scrollbar">
               <table className="w-full text-left border-collapse min-w-[900px]">
@@ -741,13 +765,34 @@ const App: React.FC = () => {
         {/* WEB VIEW SUMMARY ACTION */}
         <section className="mb-24 print-hide">
           <div className="max-w-xl mx-auto mb-16 text-center px-4">
-            <button disabled={isCalculating || hasValidationErrors} onClick={runCalculation}
-              className={`w-full py-6 md:py-8 rounded-[2rem] font-bold text-xl md:text-2xl shadow-xl transition-all flex items-center justify-center gap-3 ${
-                isCalculating || hasValidationErrors ? 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-50' : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:-translate-y-1'
+            <motion.button 
+              whileHover={isCalculating || hasValidationErrors ? {} : { scale: 1.02, y: -5 }}
+              whileTap={isCalculating || hasValidationErrors ? {} : { scale: 0.98 }}
+              disabled={isCalculating || hasValidationErrors} 
+              onClick={runCalculation}
+              className={`w-full py-6 md:py-8 rounded-[2rem] font-bold text-xl md:text-2xl shadow-xl transition-colors flex items-center justify-center gap-3 relative overflow-hidden ${
+                isCalculating || hasValidationErrors ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700'
               }`}>
-              <Download size={24} />
+              {isCalculating ? (
+                <motion.div 
+                  animate={{ rotate: 360 }} 
+                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                  className="w-6 h-6 border-4 border-slate-400 border-t-transparent rounded-full"
+                />
+              ) : (
+                <Download size={24} />
+              )}
               {isCalculating ? t.calculating : t.calculate}
-            </button>
+              
+              {/* Futuristic shine effect */}
+              {!isCalculating && !hasValidationErrors && (
+                <motion.div 
+                  className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"
+                  animate={{ translateX: ['-100%', '200%'] }}
+                  transition={{ repeat: Infinity, duration: 2, ease: "easeInOut", repeatDelay: 3 }}
+                />
+              )}
+            </motion.button>
             <p className="mt-6 text-xs font-bold text-slate-400 leading-relaxed">
               {t.calcDesc}
             </p>
@@ -848,7 +893,7 @@ const App: React.FC = () => {
       <footer className="py-12 md:py-16 text-center print-hide border-t border-slate-200 dark:border-slate-800 mt-12 md:mt-20">
         <p className="text-[10px] md:text-xs font-bold uppercase tracking-[0.5em] text-slate-400 mb-2">SmartRapor &copy; 2025 • Study Planner</p>
         <p className="text-[10px] md:text-xs font-bold text-slate-400">
-          Developed by <a href="https://tesporto-nine.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:text-indigo-600 transition-colors">KaiDev</a>
+          Developed by <a href="https://tesporto-nine.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:text-indigo-600 transition-colors">KaiDev</a> &amp; <a href="https://portofolio-rizky-s.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:text-indigo-600 transition-colors">Rizky.SDev</a>
         </p>
       </footer>
     </div>
