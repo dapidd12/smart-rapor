@@ -404,6 +404,19 @@ const App: React.FC = () => {
               </table>
             </div>
           )}
+
+          {/* PRINT VIEW: Evaluation & Motivation */}
+          <div className="mt-8 pt-6 border-t border-slate-300 avoid-break">
+            <h4 className="text-base font-bold uppercase mb-2 text-slate-800">{t.evalSummaryTitle}</h4>
+            <div className="bg-slate-50 p-4 border border-slate-200">
+              <p className="font-bold text-indigo-600 uppercase mb-1">
+                {overallAvg >= data.targetAvg ? t.evalExcellentTitle : overallAvg >= data.targetAvg - 5 ? t.evalDevelopingTitle : t.evalNeedsImprovementTitle}
+              </p>
+              <p className="text-slate-700 italic text-sm">
+                "{overallAvg >= data.targetAvg ? t.evalExcellentDesc : overallAvg >= data.targetAvg - 5 ? t.evalDevelopingDesc : t.evalNeedsImprovementDesc}"
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* WEB VIEW HERO */}
@@ -832,8 +845,11 @@ const App: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <footer className="py-16 md:py-24 text-center opacity-30 print-hide border-t border-slate-200 dark:border-slate-800 mt-12 md:mt-20">
-        <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[1.5em] md:tracking-[2em]">SmartRapor &copy; 2025 • Study Planner</p>
+      <footer className="py-12 md:py-16 text-center print-hide border-t border-slate-200 dark:border-slate-800 mt-12 md:mt-20">
+        <p className="text-[10px] md:text-xs font-bold uppercase tracking-[0.5em] text-slate-400 mb-2">SmartRapor &copy; 2025 • Study Planner</p>
+        <p className="text-[10px] md:text-xs font-bold text-slate-400">
+          Developed by <a href="https://tesporto-nine.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:text-indigo-600 transition-colors">KaiDev</a>
+        </p>
       </footer>
     </div>
   );

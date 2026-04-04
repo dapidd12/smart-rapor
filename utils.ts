@@ -136,7 +136,14 @@ export const translations: Record<'id' | 'en', any> = {
     aboutPurpose: "Tujuan Proyek",
     aboutPurposeDesc: "Smart Rapor Pro dirancang untuk membantu siswa melacak nilai mereka, memprediksi target masa depan, dan merencanakan strategi belajar untuk mencapai nilai kelulusan yang diinginkan.",
     aboutTech: "Teknologi yang Digunakan",
-    closeLabel: "Tutup"
+    closeLabel: "Tutup",
+    evalSummaryTitle: "Catatan Evaluasi & Motivasi",
+    evalExcellentTitle: "Sangat Berkembang",
+    evalExcellentDesc: "Luar biasa! Kamu telah mencapai atau bahkan melampaui target yang ditetapkan. Pertahankan dedikasi dan semangat belajarmu. Masa depan yang cerah menantimu!",
+    evalDevelopingTitle: "Berkembang",
+    evalDevelopingDesc: "Kerja bagus! Kamu sudah berada di jalur yang tepat dan sangat dekat dengan targetmu. Sedikit dorongan ekstra dan fokus yang lebih tajam akan membawamu mencapai tujuan.",
+    evalNeedsImprovementTitle: "Perlu Ditingkatkan",
+    evalNeedsImprovementDesc: "Jangan menyerah! Setiap ahli pernah menjadi pemula. Evaluasi kembali strategi belajarmu, perbanyak latihan, dan jangan ragu untuk meminta bantuan. Kamu pasti bisa bangkit!"
   },
   en: {
     welcome: "Welcome",
@@ -222,6 +229,13 @@ export const translations: Record<'id' | 'en', any> = {
     aboutPurpose: "Project Purpose",
     aboutPurposeDesc: "Smart Rapor Pro is designed to help students track their grades, forecast future targets, and plan their study strategies to achieve their desired graduation score.",
     aboutTech: "Technologies Used",
-    closeLabel: "Close"
+    closeLabel: "Close",
+    evalSummaryTitle: "Evaluation & Motivation Note",
+    evalExcellentTitle: "Highly Developing",
+    evalExcellentDesc: "Outstanding! You have achieved or even exceeded your target. Keep up the dedication and enthusiasm. A bright future awaits you!",
+    evalDevelopingTitle: "Developing",
+    evalDevelopingDesc: "Great job! You are on the right track and very close to your target. A little extra push and sharper focus will get you there.",
+    evalNeedsImprovementTitle: "Needs Improvement",
+    evalNeedsImprovementDesc: "Don't give up! Every expert was once a beginner. Re-evaluate your study strategy, practice more, and don't hesitate to ask for help. You can do this!"
   }
 };
