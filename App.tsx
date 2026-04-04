@@ -229,7 +229,7 @@ const App: React.FC = () => {
   };
 
   const handleReset = () => {
-    if (window.confirm('Tindakan ini akan menghapus seluruh data akademik Anda. Lanjutkan?')) {
+    if (window.confirm(t.confirmReset)) {
       setData(INITIAL_DATA);
       setTempName('');
       setShowWelcome(true);
@@ -280,23 +280,23 @@ const App: React.FC = () => {
             </div>
             <div>
               <h1 className="text-lg md:text-xl font-black tracking-tight leading-none uppercase">Smart<span className="text-indigo-600">Rapor</span></h1>
-              <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">Pro Analytics</span>
+              <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">Study Planner</span>
             </div>
           </motion.div>
           <div className="flex items-center gap-2 md:gap-3">
             <button onClick={() => setData(d => ({ ...d, language: d.language === 'id' ? 'en' : 'id' }))}
-              className="p-2.5 md:p-3 rounded-xl md:rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm text-xs md:text-sm font-black uppercase text-slate-600 dark:text-slate-300 w-10 md:w-12 flex items-center justify-center">
+              className="p-2.5 md:p-3 rounded-xl md:rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm text-xs md:text-sm font-black uppercase text-slate-600 dark:text-slate-300 w-11 h-11 md:w-12 md:h-12 flex items-center justify-center">
               {data.language.toUpperCase()}
             </button>
             <button onClick={() => setData(d => ({ ...d, theme: d.theme === 'dark' ? 'light' : 'dark' }))}
-              className="p-2.5 md:p-3 rounded-xl md:rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm text-lg md:text-xl text-slate-600 dark:text-slate-300">
+              className="p-2.5 md:p-3 rounded-xl md:rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm text-lg md:text-xl text-slate-600 dark:text-slate-300 w-11 h-11 md:w-12 md:h-12 flex items-center justify-center">
               {data.theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-            <div onClick={() => setShowWelcome(true)} className="flex items-center gap-2 p-1 md:p-1.5 pr-3 md:pr-4 bg-white dark:bg-slate-800 rounded-full shadow-sm border border-slate-200 dark:border-slate-700 cursor-pointer">
+            <div onClick={() => setShowWelcome(true)} className="flex items-center gap-2 p-1 md:p-1.5 pr-3 md:pr-4 bg-white dark:bg-slate-800 rounded-full shadow-sm border border-slate-200 dark:border-slate-700 cursor-pointer h-11 md:h-12">
               <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm md:text-base">
                 {data.userName[0]?.toUpperCase() || '?'}
               </div>
-              <span className="hidden sm:inline text-xs font-black uppercase tracking-tight max-w-[100px] truncate">{data.userName || 'Guest'}</span>
+              <span className="hidden sm:inline text-xs font-black uppercase tracking-tight max-w-[100px] truncate">{data.userName || t.guest}</span>
             </div>
           </div>
         </div>
@@ -338,15 +338,15 @@ const App: React.FC = () => {
             if (status === 'empty') return null;
             return (
               <div key={sem.id} className={idx > 0 && idx % 2 === 0 ? "page-break pt-8" : "mb-10"}>
-                <h4 className="text-xl font-bold uppercase mb-4 border-b-2 border-black pb-2">Semester {sem.id.toString().padStart(2, '0')} Report</h4>
+                <h4 className="text-xl font-bold uppercase mb-4 border-b-2 border-black pb-2">{t.semesterLabel} {sem.id.toString().padStart(2, '0')}</h4>
                 <table className="w-full">
                   <thead>
                     <tr>
-                      <th className="w-16">{t.noLabel}</th>
+                      <th className="w-16 text-center">{t.noLabel}</th>
                       <th>{t.subjectName}</th>
-                      <th className="w-20">{t.actualLabel}</th>
-                      <th className="w-20">{t.myPrediction}</th>
-                      <th className="w-20">{t.requiredLabel}</th>
+                      <th className="w-24 text-center">{t.actualLabel}</th>
+                      <th className="w-24 text-center">{t.myPrediction}</th>
+                      <th className="w-24 text-center">{t.requiredLabel}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -376,12 +376,12 @@ const App: React.FC = () => {
               <table className="w-full">
                 <thead>
                   <tr>
-                    <th className="w-16">{t.noLabel}</th>
+                    <th className="w-16 text-center">{t.noLabel}</th>
                     <th>{t.subjectName}</th>
-                    <th className="w-24">{t.overallAvg}</th>
-                    <th className="w-20">{t.highestScore}</th>
-                    <th className="w-20">{t.lowestScore}</th>
-                    <th className="w-32">{t.status}</th>
+                    <th className="w-24 text-center">{t.overallAvg}</th>
+                    <th className="w-24 text-center">{t.highestScore}</th>
+                    <th className="w-24 text-center">{t.lowestScore}</th>
+                    <th className="w-32 text-center">{t.status}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -407,7 +407,7 @@ const App: React.FC = () => {
         {/* WEB VIEW HERO */}
         <header className="mb-12 md:mb-16 print-hide">
           <motion.h2 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-4xl md:text-6xl font-bold tracking-tight mb-4 leading-tight">
-            Analyze,<br /><span className="gradient-text">{data.userName || 'Explorer'}</span>.
+            {t.welcome},<br /><span className="gradient-text">{data.userName || t.explorer}</span>.
           </motion.h2>
           <p className="text-slate-500 dark:text-slate-400 text-base md:text-lg font-medium max-w-2xl">{t.heroDesc}</p>
         </header>
@@ -449,7 +449,7 @@ const App: React.FC = () => {
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-widest opacity-60 block mb-3">{t.totalSemesters}</label>
                   <input type="range" min="1" max="12" value={data.totalSemestersTarget} onChange={e => setData(d => ({ ...d, totalSemestersTarget: parseInt(e.target.value) }))}
-                    className="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white" />
+                    className="w-full h-2 md:h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white" />
                   <div className="text-right font-bold mt-2 text-sm">{data.totalSemestersTarget} SMT</div>
                 </div>
               </div>
@@ -516,7 +516,7 @@ const App: React.FC = () => {
               
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 md:mb-12">
                 <div>
-                  <h3 className="text-3xl md:text-4xl font-bold tracking-tight uppercase">Semester {activeSemesterId}</h3>
+                  <h3 className="text-3xl md:text-4xl font-bold tracking-tight uppercase">{t.semesterLabel} {activeSemesterId}</h3>
                   <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">
                     {activeSemesterId === 1 ? t.masterData : t.strategyPrediction}
                   </p>
@@ -565,31 +565,33 @@ const App: React.FC = () => {
                       </div>
 
                       <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-                        {/* ACTUAL SCORE */}
-                        <div className="flex flex-col w-full sm:w-28">
-                          <span className="text-[10px] font-bold text-slate-400 mb-1 uppercase">{t.scoreLabel}</span>
-                          <input type="number" value={sub.score || ''} onChange={e => handleUpdateSubject(sub.id, 'score', e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                            className="w-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl py-3 text-center font-bold text-xl focus:border-indigo-600 outline-none transition-all" placeholder="0" />
-                        </div>
+                        <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-row sm:gap-3 w-full sm:w-auto">
+                          {/* ACTUAL SCORE */}
+                          <div className="flex flex-col w-full sm:w-28">
+                            <span className="text-[10px] font-bold text-slate-400 mb-1 uppercase truncate">{t.scoreLabel}</span>
+                            <input type="number" value={sub.score || ''} onChange={e => handleUpdateSubject(sub.id, 'score', e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                              className="w-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl py-3 text-center font-bold text-xl focus:border-indigo-600 outline-none transition-all" placeholder="0" />
+                          </div>
 
-                        {/* USER PREDICTION */}
-                        <div className="flex flex-col w-full sm:w-28">
-                          <span className="text-[10px] font-bold text-indigo-400 mb-1 uppercase">{t.predLabel}</span>
-                          <input type="number" value={sub.prediction || ''} onChange={e => handleUpdateSubject(sub.id, 'prediction', e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                            className="w-full bg-indigo-50 dark:bg-indigo-900/20 border-2 border-indigo-100 dark:border-indigo-800 rounded-xl py-3 text-center font-bold text-xl focus:border-indigo-500 outline-none transition-all" placeholder="0" />
-                        </div>
+                          {/* USER PREDICTION */}
+                          <div className="flex flex-col w-full sm:w-28">
+                            <span className="text-[10px] font-bold text-indigo-400 mb-1 uppercase truncate">{t.predLabel}</span>
+                            <input type="number" value={sub.prediction || ''} onChange={e => handleUpdateSubject(sub.id, 'prediction', e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                              className="w-full bg-indigo-50 dark:bg-indigo-900/20 border-2 border-indigo-100 dark:border-indigo-800 rounded-xl py-3 text-center font-bold text-xl focus:border-indigo-500 outline-none transition-all" placeholder="0" />
+                          </div>
 
-                        {/* AI TARGET */}
-                        <div className="flex flex-col w-full sm:w-28">
-                          <span className="text-[10px] font-bold text-emerald-500 mb-1 uppercase">{t.requiredLabel}</span>
-                          <div className="w-full bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-100 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 rounded-xl py-3 text-center font-bold text-xl">
-                            {neededAvg.toFixed(1)}
+                          {/* AI TARGET */}
+                          <div className="flex flex-col w-full sm:w-28">
+                            <span className="text-[10px] font-bold text-emerald-500 mb-1 uppercase truncate">{t.requiredLabel}</span>
+                            <div className="w-full bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-100 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 rounded-xl py-3 text-center font-bold text-xl">
+                              {neededAvg.toFixed(1)}
+                            </div>
                           </div>
                         </div>
 
                         {activeSemesterId === 1 && (
-                          <button onClick={() => handleDeleteSubject(sub.id)} className="mt-4 sm:mt-0 p-3 text-slate-300 hover:text-rose-500 transition-colors flex items-center justify-center">
-                            <X size={20} strokeWidth={3} />
+                          <button onClick={() => handleDeleteSubject(sub.id)} className="w-full sm:w-auto mt-2 sm:mt-0 p-3 text-slate-400 hover:text-rose-500 bg-white dark:bg-slate-800 sm:bg-transparent rounded-xl sm:rounded-none border-2 border-slate-200 dark:border-slate-700 sm:border-none transition-colors flex items-center justify-center gap-2">
+                            <X size={20} strokeWidth={3} /> <span className="sm:hidden font-bold text-xs uppercase tracking-widest">{t.deleteLabel}</span>
                           </button>
                         )}
                       </div>
@@ -602,7 +604,7 @@ const App: React.FC = () => {
         </section>
 
         {/* DIAGNOSIS TABLE SECTION */}
-        <section className="mb-24">
+        <section className="mb-24 print-hide">
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
             <div className="p-8 md:p-10 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6">
               <h4 className="text-xl md:text-2xl font-bold uppercase tracking-tight">{t.diagnosisTable}</h4>
@@ -665,7 +667,7 @@ const App: React.FC = () => {
 
         {/* SUBJECT ANALYSIS TABLE SECTION */}
         {subjectAverages.length > 0 && (
-          <section className="mb-24">
+          <section className="mb-24 print-hide">
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
               <div className="p-8 md:p-10 border-b border-slate-100 dark:border-slate-800">
                 <h4 className="text-xl md:text-2xl font-bold uppercase tracking-tight">{t.subjectAnalysisTable}</h4>
@@ -784,7 +786,7 @@ const App: React.FC = () => {
       </AnimatePresence>
 
       <footer className="py-16 md:py-24 text-center opacity-30 print-hide border-t border-slate-200 dark:border-slate-800 mt-12 md:mt-20">
-        <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[1.5em] md:tracking-[2em]">SmartRapor &copy; 2025 • Strategic Planner Version</p>
+        <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[1.5em] md:tracking-[2em]">SmartRapor &copy; 2025 • Study Planner</p>
       </footer>
     </div>
   );
