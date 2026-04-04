@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { Download, Sun, Moon, X, Plus, TrendingUp, TrendingDown, Minus, Trophy, Target, Award, AlertCircle, BookOpen } from 'lucide-react';
+import { Download, Sun, Moon, X, Plus, TrendingUp, TrendingDown, Minus, Trophy, Target, Award, AlertCircle, BookOpen, Info } from 'lucide-react';
 import { AppData, Semester, Subject } from './types';
 import { 
   calculateSemesterAverage, 
@@ -284,6 +284,10 @@ const App: React.FC = () => {
             </div>
           </motion.div>
           <div className="flex items-center gap-2 md:gap-3">
+            <button onClick={() => setActiveModal('about')}
+              className="p-2.5 md:p-3 rounded-xl md:rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm text-lg md:text-xl text-slate-600 dark:text-slate-300 w-11 h-11 md:w-12 md:h-12 flex items-center justify-center">
+              <Info size={20} />
+            </button>
             <button onClick={() => setData(d => ({ ...d, language: d.language === 'id' ? 'en' : 'id' }))}
               className="p-2.5 md:p-3 rounded-xl md:rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm text-xs md:text-sm font-black uppercase text-slate-600 dark:text-slate-300 w-11 h-11 md:w-12 md:h-12 flex items-center justify-center">
               {data.language.toUpperCase()}
@@ -783,6 +787,45 @@ const App: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button onClick={() => { window.print(); setActiveModal(null); }} className="py-6 bg-slate-100 dark:bg-slate-800 rounded-3xl font-bold uppercase tracking-widest text-sm md:text-base hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">{t.downloadPdf}</button>
                 <button onClick={() => setActiveModal(null)} className="py-6 bg-indigo-600 text-white rounded-3xl font-bold uppercase tracking-[0.3em] shadow-2xl text-lg hover:-translate-y-1 transition-all">{t.back}</button>
+              </div>
+            </div>
+          </Modal>
+        )}
+
+        {activeModal === 'about' && (
+          <Modal onClose={() => setActiveModal(null)} maxWidth="max-w-xl">
+            <div className="py-4 text-left">
+              <div className="flex items-center gap-4 mb-8 border-b border-slate-100 dark:border-slate-800 pb-6">
+                <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl flex items-center justify-center">
+                  <Info size={24} strokeWidth={2.5} />
+                </div>
+                <h2 className="text-2xl font-bold tracking-tight uppercase">{t.aboutTitle}</h2>
+              </div>
+              
+              <div className="space-y-8">
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-3">{t.aboutPurpose}</h3>
+                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                    {t.aboutPurposeDesc}
+                  </p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-3">{t.aboutTech}</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {['React', 'TypeScript', 'Tailwind CSS', 'Framer Motion', 'Recharts', 'Lucide Icons'].map(tech => (
+                      <span key={tech} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg text-sm font-bold">
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-10 pt-6 border-t border-slate-100 dark:border-slate-800 text-right">
+                <button onClick={() => setActiveModal(null)} className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold uppercase tracking-widest text-sm hover:-translate-y-1 transition-all">
+                  {t.closeLabel}
+                </button>
               </div>
             </div>
           </Modal>

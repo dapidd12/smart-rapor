@@ -131,7 +131,12 @@ export const translations: Record<'id' | 'en', any> = {
     howToUseTitle: "Cara Menggunakan Aplikasi",
     step1: "Atur target nilai akhir dan jumlah semester di bagian atas.",
     step2: "Tambahkan mata pelajaran dan masukkan nilai asli kamu.",
-    step3: "Masukkan target nilai kamu, dan kami akan menghitung nilai minimal yang kamu butuhkan."
+    step3: "Masukkan target nilai kamu, dan kami akan menghitung nilai minimal yang kamu butuhkan.",
+    aboutTitle: "Tentang Aplikasi",
+    aboutPurpose: "Tujuan Proyek",
+    aboutPurposeDesc: "Smart Rapor Pro dirancang untuk membantu siswa melacak nilai mereka, memprediksi target masa depan, dan merencanakan strategi belajar untuk mencapai nilai kelulusan yang diinginkan.",
+    aboutTech: "Teknologi yang Digunakan",
+    closeLabel: "Tutup"
   },
   en: {
     welcome: "Welcome",
@@ -212,6 +217,11 @@ export const translations: Record<'id' | 'en', any> = {
     howToUseTitle: "How to Use",
     step1: "Set your final target score and total semesters at the top.",
     step2: "Add your subjects and enter your actual scores.",
-    step3: "Enter your target score, and we will calculate the minimum score you need."
+    step3: "Enter your target score, and we will calculate the minimum score you need.",
+    aboutTitle: "About Application",
+    aboutPurpose: "Project Purpose",
+    aboutPurposeDesc: "Smart Rapor Pro is designed to help students track their grades, forecast future targets, and plan their study strategies to achieve their desired graduation score.",
+    aboutTech: "Technologies Used",
+    closeLabel: "Close"
   }
 };
