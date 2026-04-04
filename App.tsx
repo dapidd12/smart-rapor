@@ -339,7 +339,7 @@ const App: React.FC = () => {
             const status = getSemesterStatus(sem);
             if (status === 'empty') return null;
             return (
-              <div key={sem.id} className="mb-6 avoid-break">
+              <div key={sem.id} className="mb-6">
                 <h4 className="text-base font-bold uppercase mb-2 text-slate-800">{t.semesterLabel} {sem.id.toString().padStart(2, '0')}</h4>
                 <table className="w-full">
                   <thead>
@@ -373,7 +373,7 @@ const App: React.FC = () => {
 
           {/* PRINT VIEW: Subject Analysis Table */}
           {subjectAverages.length > 0 && (
-            <div className="mb-6 avoid-break">
+            <div className="mb-6">
               <h4 className="text-base font-bold uppercase mb-2 text-slate-800">{t.subjectAnalysisTable}</h4>
               <table className="w-full">
                 <thead>
