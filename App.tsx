@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { Download, Sun, Moon, X, Plus, TrendingUp, TrendingDown, Minus, Trophy, Target, Award, AlertCircle } from 'lucide-react';
+import { Download, Sun, Moon, X, Plus, TrendingUp, TrendingDown, Minus, Trophy, Target, Award, AlertCircle, BookOpen } from 'lucide-react';
 import { AppData, Semester, Subject } from './types';
 import { 
   calculateSemesterAverage, 
@@ -306,29 +306,27 @@ const App: React.FC = () => {
         
         {/* PRINT VIEW: Header & Summary */}
         <div className="hidden print-block print-container">
-          <div className="text-center border-b-4 border-black pb-8 mb-8">
-            <h1 className="text-4xl font-bold uppercase mb-1">{t.detailedTranscript}</h1>
-            <p className="text-sm font-bold tracking-widest text-slate-500 uppercase">{t.strategicForecast}</p>
-            <div className="flex justify-between items-end mt-10">
-              <div className="text-left">
-                <p className="text-[10px] font-bold text-slate-500 uppercase">{t.studentName}</p>
-                <p className="text-2xl font-bold tracking-tighter">{data.userName.toUpperCase()}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] font-bold text-slate-500 uppercase">{t.dateOfIssue}</p>
-                <p className="text-lg font-bold">{new Date().toLocaleDateString(data.language === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'full' })}</p>
-              </div>
+          <div className="flex justify-between items-end border-b border-slate-300 pb-6 mb-8">
+            <div>
+              <h1 className="text-3xl font-black tracking-tight uppercase mb-1">Smart<span className="text-indigo-600">Rapor</span></h1>
+              <p className="text-xs font-bold tracking-widest text-slate-500 uppercase">{t.detailedTranscript}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] font-bold text-slate-500 uppercase">{t.studentName}</p>
+              <p className="text-xl font-bold tracking-tight">{data.userName.toUpperCase()}</p>
+              <p className="text-[10px] font-bold text-slate-500 uppercase mt-2">{t.dateOfIssue}</p>
+              <p className="text-sm font-bold">{new Date().toLocaleDateString(data.language === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'full' })}</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-8">
-            <div className="border-2 border-black p-6">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">{t.targetAvg}</p>
-              <p className="text-4xl font-bold">{data.targetAvg.toFixed(1)}%</p>
+          <div className="flex gap-12 mb-10">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">{t.targetAvg}</p>
+              <p className="text-3xl font-black">{data.targetAvg.toFixed(1)}</p>
             </div>
-            <div className="border-2 border-black p-6">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">{t.overallAvg}</p>
-              <p className="text-4xl font-bold text-indigo-600">{overallAvg.toFixed(1)}%</p>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">{t.overallAvg}</p>
+              <p className="text-3xl font-black text-indigo-600">{overallAvg.toFixed(1)}</p>
             </div>
           </div>
 
@@ -338,11 +336,11 @@ const App: React.FC = () => {
             if (status === 'empty') return null;
             return (
               <div key={sem.id} className={idx > 0 && idx % 2 === 0 ? "page-break pt-8" : "mb-10"}>
-                <h4 className="text-xl font-bold uppercase mb-4 border-b-2 border-black pb-2">{t.semesterLabel} {sem.id.toString().padStart(2, '0')}</h4>
+                <h4 className="text-lg font-bold uppercase mb-4 text-slate-800">{t.semesterLabel} {sem.id.toString().padStart(2, '0')}</h4>
                 <table className="w-full">
                   <thead>
                     <tr>
-                      <th className="w-16 text-center">{t.noLabel}</th>
+                      <th className="w-12 text-center">{t.noLabel}</th>
                       <th>{t.subjectName}</th>
                       <th className="w-24 text-center">{t.actualLabel}</th>
                       <th className="w-24 text-center">{t.myPrediction}</th>
@@ -352,16 +350,16 @@ const App: React.FC = () => {
                   <tbody>
                     {sem.subjects.map((sub, sIdx) => (
                       <tr key={sub.id}>
-                        <td className="text-center">{sIdx + 1}</td>
+                        <td className="text-center text-slate-500">{sIdx + 1}</td>
                         <td className="uppercase font-bold">{sub.name || '-'}</td>
                         <td className="text-center">{sub.score || '-'}</td>
                         <td className="text-center">{sub.prediction || '-'}</td>
                         <td className="text-center bg-slate-50 dark:bg-slate-900 font-bold">{neededAvg.toFixed(1)}</td>
                       </tr>
                     ))}
-                    <tr className="font-bold bg-slate-100 dark:bg-slate-800">
-                      <td colSpan={2} className="text-right uppercase">{t.semesterSummary}</td>
-                      <td colSpan={3} className="text-center text-xl">{calculateSemesterAverage(sem, true).toFixed(2)}</td>
+                    <tr className="font-bold bg-slate-50 dark:bg-slate-800">
+                      <td colSpan={2} className="text-right uppercase text-xs tracking-widest text-slate-500">{t.semesterSummary}</td>
+                      <td colSpan={3} className="text-center text-lg">{calculateSemesterAverage(sem, true).toFixed(2)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -372,11 +370,11 @@ const App: React.FC = () => {
           {/* PRINT VIEW: Subject Analysis Table */}
           {subjectAverages.length > 0 && (
             <div className="page-break pt-8 mb-10">
-              <h4 className="text-xl font-bold uppercase mb-4 border-b-2 border-black pb-2">{t.subjectAnalysisTable}</h4>
+              <h4 className="text-lg font-bold uppercase mb-4 text-slate-800">{t.subjectAnalysisTable}</h4>
               <table className="w-full">
                 <thead>
                   <tr>
-                    <th className="w-16 text-center">{t.noLabel}</th>
+                    <th className="w-12 text-center">{t.noLabel}</th>
                     <th>{t.subjectName}</th>
                     <th className="w-24 text-center">{t.overallAvg}</th>
                     <th className="w-24 text-center">{t.highestScore}</th>
@@ -389,12 +387,12 @@ const App: React.FC = () => {
                     const isHealthy = sub.avg >= data.targetAvg;
                     return (
                       <tr key={sIdx}>
-                        <td className="text-center">{sIdx + 1}</td>
+                        <td className="text-center text-slate-500">{sIdx + 1}</td>
                         <td className="uppercase font-bold">{sub.name || '-'}</td>
                         <td className="text-center font-bold">{sub.avg > 0 ? sub.avg.toFixed(1) : '-'}</td>
                         <td className="text-center">{sub.highest > 0 ? sub.highest : '-'}</td>
                         <td className="text-center">{sub.lowest > 0 && sub.lowest <= 100 ? sub.lowest : '-'}</td>
-                        <td className="uppercase text-center text-xs font-bold">{sub.avg > 0 ? (isHealthy ? t.onTrack : t.needsFocus) : '-'}</td>
+                        <td className="uppercase text-center text-[10px] font-bold tracking-widest">{sub.avg > 0 ? (isHealthy ? t.onTrack : t.needsFocus) : '-'}</td>
                       </tr>
                     );
                   })}
@@ -530,18 +528,24 @@ const App: React.FC = () => {
 
               <div className="space-y-6 md:space-y-8">
                 {activeSemester?.subjects.length === 0 ? (
-                  <div className="py-16 flex flex-col items-center justify-center gap-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] text-slate-400">
-                    <div className="text-center">
-                      <AlertCircle size={48} strokeWidth={1.5} className="opacity-50 mx-auto mb-4" />
-                      <p className="font-bold text-lg text-slate-600 dark:text-slate-300 mb-2">{t.emptyState}</p>
-                      <p className="text-sm opacity-70 max-w-md mx-auto">{t.emptyStateDesc}</p>
+                  <div className="py-12 md:py-16 flex flex-col items-center justify-center gap-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] text-slate-400">
+                    <div className="text-center max-w-md mx-auto px-4">
+                      <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <BookOpen size={32} />
+                      </div>
+                      <h4 className="text-xl font-bold mb-6 text-slate-800 dark:text-slate-200 uppercase tracking-tight">{t.howToUseTitle}</h4>
+                      <ol className="text-sm text-slate-600 dark:text-slate-400 text-left space-y-4 mb-8">
+                        <li className="flex gap-4 items-start"><span className="font-black text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 w-6 h-6 flex items-center justify-center rounded-full shrink-0">1</span> <span className="pt-0.5 leading-relaxed">{t.step1}</span></li>
+                        <li className="flex gap-4 items-start"><span className="font-black text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 w-6 h-6 flex items-center justify-center rounded-full shrink-0">2</span> <span className="pt-0.5 leading-relaxed">{t.step2}</span></li>
+                        <li className="flex gap-4 items-start"><span className="font-black text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 w-6 h-6 flex items-center justify-center rounded-full shrink-0">3</span> <span className="pt-0.5 leading-relaxed">{t.step3}</span></li>
+                      </ol>
                     </div>
                     {activeSemesterId === 1 && (
-                      <div className="flex flex-col sm:flex-row gap-4 mt-2">
-                        <button onClick={handleUseTemplate} className="px-6 py-3 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 rounded-xl font-bold shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2">
+                      <div className="flex flex-col sm:flex-row gap-4 mt-2 w-full sm:w-auto px-4">
+                        <button onClick={handleUseTemplate} className="w-full sm:w-auto px-8 py-4 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 rounded-2xl font-bold shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-xs">
                           <Plus size={18} /> {t.useTemplate}
                         </button>
-                        <button onClick={handleAddSubject} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-md hover:bg-indigo-700 transition-all flex items-center justify-center gap-2">
+                        <button onClick={handleAddSubject} className="w-full sm:w-auto px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-md hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-xs">
                           <Plus size={18} /> {t.addSubject}
                         </button>
                       </div>

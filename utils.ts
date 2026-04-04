@@ -127,7 +127,11 @@ export const translations: Record<'id' | 'en', any> = {
     progressLabel: "Perkembangan",
     guest: "Tamu",
     explorer: "Pelajar",
-    deleteLabel: "Hapus"
+    deleteLabel: "Hapus",
+    howToUseTitle: "Cara Menggunakan Aplikasi",
+    step1: "Atur target nilai akhir dan jumlah semester di bagian atas.",
+    step2: "Tambahkan mata pelajaran dan masukkan nilai asli kamu.",
+    step3: "Masukkan target nilai kamu, dan kami akan menghitung nilai minimal yang kamu butuhkan."
   },
   en: {
     welcome: "Welcome",
@@ -204,6 +208,10 @@ export const translations: Record<'id' | 'en', any> = {
     progressLabel: "Progress",
     guest: "Guest",
     explorer: "Explorer",
-    deleteLabel: "Delete"
+    deleteLabel: "Delete",
+    howToUseTitle: "How to Use",
+    step1: "Set your final target score and total semesters at the top.",
+    step2: "Add your subjects and enter your actual scores.",
+    step3: "Enter your target score, and we will calculate the minimum score you need."
   }
 };
