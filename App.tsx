@@ -310,27 +310,27 @@ const App: React.FC = () => {
         
         {/* PRINT VIEW: Header & Summary */}
         <div className="hidden print-block print-container">
-          <div className="flex justify-between items-end border-b border-slate-300 pb-6 mb-8">
+          <div className="flex justify-between items-end border-b border-slate-300 pb-4 mb-4">
             <div>
-              <h1 className="text-3xl font-black tracking-tight uppercase mb-1">Smart<span className="text-indigo-600">Rapor</span></h1>
-              <p className="text-xs font-bold tracking-widest text-slate-500 uppercase">{t.detailedTranscript}</p>
+              <h1 className="text-2xl font-black tracking-tight uppercase mb-1">Smart<span className="text-indigo-600">Rapor</span></h1>
+              <p className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">{t.detailedTranscript}</p>
             </div>
             <div className="text-right">
-              <p className="text-[10px] font-bold text-slate-500 uppercase">{t.studentName}</p>
-              <p className="text-xl font-bold tracking-tight">{data.userName.toUpperCase()}</p>
-              <p className="text-[10px] font-bold text-slate-500 uppercase mt-2">{t.dateOfIssue}</p>
-              <p className="text-sm font-bold">{new Date().toLocaleDateString(data.language === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'full' })}</p>
+              <p className="text-[9px] font-bold text-slate-500 uppercase">{t.studentName}</p>
+              <p className="text-lg font-bold tracking-tight">{data.userName.toUpperCase()}</p>
+              <p className="text-[9px] font-bold text-slate-500 uppercase mt-1">{t.dateOfIssue}</p>
+              <p className="text-xs font-bold">{new Date().toLocaleDateString(data.language === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'full' })}</p>
             </div>
           </div>
 
-          <div className="flex gap-12 mb-10">
+          <div className="flex gap-8 mb-6">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">{t.targetAvg}</p>
-              <p className="text-3xl font-black">{data.targetAvg.toFixed(1)}</p>
+              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">{t.targetAvg}</p>
+              <p className="text-2xl font-black">{data.targetAvg.toFixed(1)}</p>
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">{t.overallAvg}</p>
-              <p className="text-3xl font-black text-indigo-600">{overallAvg.toFixed(1)}</p>
+              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">{t.overallAvg}</p>
+              <p className="text-2xl font-black text-indigo-600">{overallAvg.toFixed(1)}</p>
             </div>
           </div>
 
@@ -339,8 +339,8 @@ const App: React.FC = () => {
             const status = getSemesterStatus(sem);
             if (status === 'empty') return null;
             return (
-              <div key={sem.id} className={idx > 0 && idx % 2 === 0 ? "page-break pt-8" : "mb-10"}>
-                <h4 className="text-lg font-bold uppercase mb-4 text-slate-800">{t.semesterLabel} {sem.id.toString().padStart(2, '0')}</h4>
+              <div key={sem.id} className="mb-6 avoid-break">
+                <h4 className="text-base font-bold uppercase mb-2 text-slate-800">{t.semesterLabel} {sem.id.toString().padStart(2, '0')}</h4>
                 <table className="w-full">
                   <thead>
                     <tr>
@@ -362,8 +362,8 @@ const App: React.FC = () => {
                       </tr>
                     ))}
                     <tr className="font-bold bg-slate-50 dark:bg-slate-800">
-                      <td colSpan={2} className="text-right uppercase text-xs tracking-widest text-slate-500">{t.semesterSummary}</td>
-                      <td colSpan={3} className="text-center text-lg">{calculateSemesterAverage(sem, true).toFixed(2)}</td>
+                      <td colSpan={2} className="text-right uppercase text-[10px] tracking-widest text-slate-500">{t.semesterSummary}</td>
+                      <td colSpan={3} className="text-center text-base">{calculateSemesterAverage(sem, true).toFixed(2)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -373,8 +373,8 @@ const App: React.FC = () => {
 
           {/* PRINT VIEW: Subject Analysis Table */}
           {subjectAverages.length > 0 && (
-            <div className="page-break pt-8 mb-10">
-              <h4 className="text-lg font-bold uppercase mb-4 text-slate-800">{t.subjectAnalysisTable}</h4>
+            <div className="mb-6 avoid-break">
+              <h4 className="text-base font-bold uppercase mb-2 text-slate-800">{t.subjectAnalysisTable}</h4>
               <table className="w-full">
                 <thead>
                   <tr>
