@@ -72,13 +72,16 @@ const App: React.FC = () => {
   }, [data.theme, data, isLoaded]);
 
   const syncS1ToOthers = useCallback((allSemesters: Semester[]) => {
-    const s1 = allSemesters[0];
+    const s1 = allSemesters.find(s => s.id === 1);
     if (!s1) return allSemesters;
     return allSemesters.map(s => {
       if (s.id === 1) return s;
       const newSubjects = s1.subjects.map(template => {
-        const existing = s.subjects.find(sub => sub.name === template.name);
-        return existing ? { ...existing, name: template.name } : { id: generateId(), name: template.name, score: 0, prediction: 0 };
+        let existing = s.subjects.find(sub => sub.id === template.id);
+        if (!existing && template.name.trim() !== '') {
+          existing = s.subjects.find(sub => sub.name.toLowerCase() === template.name.toLowerCase());
+        }
+        return existing ? { ...existing, name: template.name, id: template.id } : { id: template.id, name: template.name, score: 0, prediction: 0 };
       });
       return { ...s, subjects: newSubjects };
     });
@@ -206,12 +209,12 @@ const App: React.FC = () => {
   };
 
   const handleUseTemplate = () => {
-    const templateSubjects = ['Matematika', 'Bahasa Indonesia', 'Bahasa Inggris', 'IPA', 'IPS'];
+    const templateSubjects = ['Matematika', 'Bahasa Indonesia', 'Bahasa Inggris', 'IPA', 'IPS'].map(name => ({ id: generateId(), name }));
     setData(prev => {
       const updatedSems = prev.semesters.map(s => {
-        const newSubjects = templateSubjects.map(name => ({
-          id: generateId(),
-          name,
+        const newSubjects = templateSubjects.map(t => ({
+          id: t.id,
+          name: t.name,
           score: 0,
           prediction: 0
         }));
@@ -223,12 +226,9 @@ const App: React.FC = () => {
 
   const handleDeleteSubject = (subId: string) => {
     setData(prev => {
-      const targetSem = prev.semesters.find(s => s.id === activeSemesterId);
-      const targetSub = targetSem?.subjects.find(s => s.id === subId);
-      if (!targetSub) return prev;
       const newSemesters = prev.semesters.map(s => ({
         ...s,
-        subjects: s.subjects.filter(sub => activeSemesterId === 1 ? sub.name !== targetSub.name : sub.id !== subId)
+        subjects: s.subjects.filter(sub => sub.id !== subId)
       }));
       return { ...prev, semesters: newSemesters };
     });
@@ -252,7 +252,7 @@ const App: React.FC = () => {
 
   const parseImportedText = (text: string) => {
     const lines = text.split('\n');
-    const newSubjects: Subject[] = [];
+    const parsedSubjects: { name: string, score: number }[] = [];
     
     lines.forEach(line => {
       const numbers = line.match(/\b\d{1,3}(?:\.\d+)?\b/g);
@@ -264,37 +264,44 @@ const App: React.FC = () => {
           
           if (name.length > 2) {
              name = name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-             newSubjects.push({
-               id: generateId(),
-               name: name.substring(0, 30),
-               score: score,
-               prediction: 0
-             });
+             parsedSubjects.push({ name: name.substring(0, 30), score });
           }
         }
       }
     });
 
-    if (newSubjects.length > 0) {
+    if (parsedSubjects.length > 0) {
       setData(prev => {
         const newSemesters = [...prev.semesters];
         const activeSemIndex = newSemesters.findIndex(s => s.id === activeSemesterId);
-        if (activeSemIndex !== -1) {
-          const existingSubjects = newSemesters[activeSemIndex].subjects;
-          const mergedSubjects = [...existingSubjects];
+        const s1Index = newSemesters.findIndex(s => s.id === 1);
+
+        if (activeSemIndex !== -1 && s1Index !== -1) {
+          const s1Subjects = [...newSemesters[s1Index].subjects];
           
-          newSubjects.forEach(newSub => {
-             const existingIndex = mergedSubjects.findIndex(s => s.name.toLowerCase() === newSub.name.toLowerCase());
-             if (existingIndex !== -1) {
-               mergedSubjects[existingIndex].score = newSub.score;
-             } else {
-               mergedSubjects.push(newSub);
-             }
+          parsedSubjects.forEach(parsedSub => {
+            let existingS1Sub = s1Subjects.find(s => s.name.toLowerCase() === parsedSub.name.toLowerCase());
+            if (!existingS1Sub) {
+              existingS1Sub = { id: generateId(), name: parsedSub.name, score: 0, prediction: 0 };
+              s1Subjects.push(existingS1Sub);
+            }
           });
           
-          newSemesters[activeSemIndex] = { ...newSemesters[activeSemIndex], subjects: mergedSubjects };
+          newSemesters[s1Index] = { ...newSemesters[s1Index], subjects: s1Subjects };
+          const syncedSemesters = syncS1ToOthers(newSemesters);
+          
+          const finalActiveSubjects = syncedSemesters[activeSemIndex].subjects.map(sub => {
+            const importedSub = parsedSubjects.find(s => s.name.toLowerCase() === sub.name.toLowerCase());
+            if (importedSub) {
+              return { ...sub, score: importedSub.score };
+            }
+            return sub;
+          });
+          
+          syncedSemesters[activeSemIndex] = { ...syncedSemesters[activeSemIndex], subjects: finalActiveSubjects };
+          return { ...prev, semesters: syncedSemesters };
         }
-        return { ...prev, semesters: syncS1ToOthers(newSemesters) };
+        return prev;
       });
       setActiveModal(null);
     } else {
