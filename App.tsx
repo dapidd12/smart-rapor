@@ -1,8 +1,10 @@
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { Download, Sun, Moon, X, Plus, TrendingUp, TrendingDown, Minus, Trophy, Target, Award, AlertCircle, BookOpen, Info } from 'lucide-react';
+import { Download, Sun, Moon, X, Plus, TrendingUp, TrendingDown, Minus, Trophy, Target, Award, AlertCircle, BookOpen, Info, Upload, FileImage, FileSpreadsheet } from 'lucide-react';
+import Tesseract from 'tesseract.js';
+import Papa from 'papaparse';
 import { AppData, Semester, Subject } from './types';
 import { 
   calculateSemesterAverage, 
@@ -44,8 +46,11 @@ const App: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
-  const [activeModal, setActiveModal] = useState<'final' | null>(null);
+  const [activeModal, setActiveModal] = useState<'final' | 'about' | 'import' | null>(null);
   const [tempName, setTempName] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const t = useMemo(() => translations[data.language], [data.language]);
 
@@ -105,7 +110,6 @@ const App: React.FC = () => {
     return 'complete';
   }, []);
 
-  const overallAvg = useMemo(() => calculateOverallAverage(data.semesters), [data.semesters]);
   const completeSemestersCount = useMemo(() => data.semesters.filter(s => getSemesterStatus(s) === 'complete').length, [data.semesters, getSemesterStatus]);
 
   const neededAvg = useMemo(() => {
@@ -119,10 +123,12 @@ const App: React.FC = () => {
     return Math.max(0, Math.min(100, needed));
   }, [data.targetAvg, data.totalSemestersTarget, completeSemestersCount, data.semesters, getSemesterStatus]);
 
+  const overallAvg = useMemo(() => calculateOverallAverage(data.semesters, neededAvg), [data.semesters, neededAvg]);
+
   const hasValidationErrors = useMemo(() => {
     return data.semesters.some(sem => 
       sem.subjects.some(sub => 
-        !sub.name.trim() || sub.score < 0 || sub.score > 100 || sub.prediction < 0 || sub.prediction > 100
+        !sub.name.trim() || sub.score < 0 || sub.score > 100
       )
     );
   }, [data.semesters]);
@@ -139,7 +145,7 @@ const App: React.FC = () => {
       data.semesters.forEach(sem => {
         const sub = sem.subjects.find(s => s.name === subjectTemplate.name);
         if (sub) {
-          const scoreToUse = sub.score > 0 ? sub.score : (sub.prediction > 0 ? sub.prediction : 0);
+          const scoreToUse = sub.score > 0 ? sub.score : neededAvg;
           if (scoreToUse > 0) {
             totalScore += scoreToUse;
             count++;
@@ -159,14 +165,14 @@ const App: React.FC = () => {
         count
       };
     }).filter(s => s.name.trim() !== '');
-  }, [data.semesters]);
+  }, [data.semesters, neededAvg]);
 
   const activeSemester = useMemo(() => data.semesters.find(s => s.id === activeSemesterId) || null, [data.semesters, activeSemesterId]);
 
   const chartData = useMemo(() => {
     return data.semesters.map(s => {
-      const actualAvg = calculateSemesterAverage(s, false);
-      const combinedAvg = calculateSemesterAverage(s, true);
+      const actualAvg = calculateSemesterAverage(s, false, neededAvg);
+      const combinedAvg = calculateSemesterAverage(s, true, neededAvg);
       return {
         name: `SMT ${s.id}`,
         Actual: actualAvg > 0 ? parseFloat(actualAvg.toFixed(2)) : null,
@@ -174,7 +180,7 @@ const App: React.FC = () => {
         Target: data.targetAvg
       };
     });
-  }, [data.semesters, data.targetAvg]);
+  }, [data.semesters, data.targetAvg, neededAvg]);
 
   const handleUpdateSubject = (subId: string, field: keyof Subject, value: string | number) => {
     setData(prev => {
@@ -242,6 +248,107 @@ const App: React.FC = () => {
     await new Promise(r => setTimeout(r, 1500));
     setIsCalculating(false);
     setActiveModal('final');
+  };
+
+  const parseImportedText = (text: string) => {
+    const lines = text.split('\n');
+    const newSubjects: Subject[] = [];
+    
+    lines.forEach(line => {
+      const numbers = line.match(/\b\d{1,3}(?:\.\d+)?\b/g);
+      if (numbers) {
+        const possibleScores = numbers.map(Number).filter(n => n >= 0 && n <= 100);
+        if (possibleScores.length > 0) {
+          const score = possibleScores[possibleScores.length - 1];
+          let name = line.replace(/\b\d{1,3}(?:\.\d+)?\b/g, '').replace(/[^a-zA-Z\s]/g, '').trim();
+          
+          if (name.length > 2) {
+             name = name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+             newSubjects.push({
+               id: generateId(),
+               name: name.substring(0, 30),
+               score: score,
+               prediction: 0
+             });
+          }
+        }
+      }
+    });
+
+    if (newSubjects.length > 0) {
+      setData(prev => {
+        const newSemesters = [...prev.semesters];
+        const activeSemIndex = newSemesters.findIndex(s => s.id === activeSemesterId);
+        if (activeSemIndex !== -1) {
+          const existingSubjects = newSemesters[activeSemIndex].subjects;
+          const mergedSubjects = [...existingSubjects];
+          
+          newSubjects.forEach(newSub => {
+             const existingIndex = mergedSubjects.findIndex(s => s.name.toLowerCase() === newSub.name.toLowerCase());
+             if (existingIndex !== -1) {
+               mergedSubjects[existingIndex].score = newSub.score;
+             } else {
+               mergedSubjects.push(newSub);
+             }
+          });
+          
+          newSemesters[activeSemIndex] = { ...newSemesters[activeSemIndex], subjects: mergedSubjects };
+        }
+        return { ...prev, semesters: syncS1ToOthers(newSemesters) };
+      });
+      setActiveModal(null);
+    } else {
+      alert('Could not find any valid subjects and scores in the file. Please check the format.');
+    }
+    setIsImporting(false);
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    setImportProgress(0);
+
+    try {
+      if (file.type.startsWith('image/')) {
+        const worker = await Tesseract.createWorker('eng+ind', 1, {
+          logger: m => {
+            if (m.status === 'recognizing text') {
+              setImportProgress(Math.round(m.progress * 100));
+            }
+          }
+        });
+        
+        const { data: { text } } = await worker.recognize(file);
+        await worker.terminate();
+        
+        parseImportedText(text);
+      } else if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+        Papa.parse(file, {
+          complete: (results) => {
+            const text = results.data.map((row: any) => row.join(' ')).join('\n');
+            parseImportedText(text);
+          },
+          error: (error) => {
+            console.error('CSV Parsing Error:', error);
+            alert('Failed to parse CSV file.');
+            setIsImporting(false);
+          }
+        });
+      } else {
+        alert('Unsupported file type. Please upload an image or CSV file.');
+        setIsImporting(false);
+      }
+    } catch (error) {
+      console.error('Import Error:', error);
+      alert('An error occurred during import.');
+      setIsImporting(false);
+    }
+    
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const saveName = () => {
@@ -353,7 +460,6 @@ const App: React.FC = () => {
                       <th className="w-12 text-center">{t.noLabel}</th>
                       <th>{t.subjectName}</th>
                       <th className="w-24 text-center">{t.actualLabel}</th>
-                      <th className="w-24 text-center">{t.myPrediction}</th>
                       <th className="w-24 text-center">{t.requiredLabel}</th>
                     </tr>
                   </thead>
@@ -363,13 +469,12 @@ const App: React.FC = () => {
                         <td className="text-center text-slate-500">{sIdx + 1}</td>
                         <td className="uppercase font-bold">{sub.name || '-'}</td>
                         <td className="text-center">{sub.score || '-'}</td>
-                        <td className="text-center">{sub.prediction || '-'}</td>
                         <td className="text-center bg-slate-50 dark:bg-slate-900 font-bold">{neededAvg.toFixed(1)}</td>
                       </tr>
                     ))}
                     <tr className="font-bold bg-slate-50 dark:bg-slate-800">
                       <td colSpan={2} className="text-right uppercase text-[10px] tracking-widest text-slate-500">{t.semesterSummary}</td>
-                      <td colSpan={3} className="text-center text-base">{calculateSemesterAverage(sem, true).toFixed(2)}</td>
+                      <td colSpan={2} className="text-center text-base">{calculateSemesterAverage(sem, true).toFixed(2)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -570,6 +675,13 @@ const App: React.FC = () => {
                         <motion.button 
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
+                          onClick={() => setActiveModal('import')} 
+                          className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 rounded-2xl font-bold shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 uppercase tracking-widest text-[10px] sm:text-xs">
+                          <Upload size={16} className="sm:w-[18px] sm:h-[18px]" /> Import Data
+                        </motion.button>
+                        <motion.button 
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
                           onClick={handleUseTemplate} 
                           className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 rounded-2xl font-bold shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 uppercase tracking-widest text-[10px] sm:text-xs">
                           <Plus size={16} className="sm:w-[18px] sm:h-[18px]" /> {t.useTemplate}
@@ -604,7 +716,7 @@ const App: React.FC = () => {
                           </div>
 
                           <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-                            <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-row sm:gap-3 w-full sm:w-auto">
+                            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:gap-3 w-full sm:w-auto">
                               {/* ACTUAL SCORE */}
                               <div className="flex flex-col w-full sm:w-24 md:w-28">
                                 <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 mb-1 uppercase truncate">{t.scoreLabel}</span>
@@ -612,17 +724,10 @@ const App: React.FC = () => {
                                   className="w-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl py-2.5 sm:py-3 text-center font-bold text-lg sm:text-xl focus:border-indigo-600 outline-none transition-all" placeholder="0" />
                               </div>
 
-                              {/* USER PREDICTION */}
+                              {/* REQUIRED SCORE */}
                               <div className="flex flex-col w-full sm:w-24 md:w-28">
-                                <span className="text-[9px] sm:text-[10px] font-bold text-indigo-400 mb-1 uppercase truncate">{t.predLabel}</span>
-                                <input type="number" value={sub.prediction || ''} onChange={e => handleUpdateSubject(sub.id, 'prediction', e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                  className="w-full bg-indigo-50 dark:bg-indigo-900/20 border-2 border-indigo-100 dark:border-indigo-800 rounded-xl py-2.5 sm:py-3 text-center font-bold text-lg sm:text-xl focus:border-indigo-500 outline-none transition-all" placeholder="0" />
-                              </div>
-
-                              {/* AI TARGET */}
-                              <div className="flex flex-col w-full sm:w-24 md:w-28">
-                                <span className="text-[9px] sm:text-[10px] font-bold text-emerald-500 mb-1 uppercase truncate">{t.requiredLabel}</span>
-                                <div className="w-full bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-100 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 rounded-xl py-2.5 sm:py-3 text-center font-bold text-lg sm:text-xl">
+                                <span className="text-[9px] sm:text-[10px] font-bold text-indigo-400 mb-1 uppercase truncate">{t.requiredLabel}</span>
+                                <div className="w-full bg-indigo-50 dark:bg-indigo-900/20 border-2 border-indigo-100 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 rounded-xl py-2.5 sm:py-3 text-center font-bold text-lg sm:text-xl">
                                   {neededAvg.toFixed(1)}
                                 </div>
                               </div>
@@ -688,9 +793,9 @@ const App: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {data.semesters.map(s => {
-                    const actualAvg = calculateSemesterAverage(s, false);
-                    const combinedAvg = calculateSemesterAverage(s, true);
-                    const stats = getSemesterStats(s);
+                    const actualAvg = calculateSemesterAverage(s, false, neededAvg);
+                    const combinedAvg = calculateSemesterAverage(s, true, neededAvg);
+                    const stats = getSemesterStats(s, neededAvg);
                     const status = getSemesterStatus(s);
                     const isHealthy = stats.variance < 5 && combinedAvg > data.targetAvg;
                     
@@ -874,6 +979,63 @@ const App: React.FC = () => {
                   className="py-5 sm:py-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-3xl font-bold uppercase tracking-[0.3em] shadow-xl text-base sm:text-lg hover:shadow-2xl transition-all">
                   {t.back}
                 </motion.button>
+              </div>
+            </div>
+          </Modal>
+        )}
+
+        {activeModal === 'import' && (
+          <Modal onClose={() => !isImporting && setActiveModal(null)} maxWidth="max-w-md">
+            <div className="text-center py-2 sm:py-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 sm:mb-8 text-white shadow-2xl">
+                <Upload size={32} strokeWidth={2} className="sm:w-10 sm:h-10" />
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-3 tracking-tighter uppercase">Import Data</h2>
+              <p className="text-slate-400 font-bold text-[9px] sm:text-[10px] uppercase tracking-widest mb-8 sm:mb-10 px-4 sm:px-6 leading-relaxed">
+                Upload Image or CSV to extract subjects and scores
+              </p>
+              
+              <div className="space-y-4 sm:space-y-6">
+                <input 
+                  type="file" 
+                  accept="image/*,.csv" 
+                  className="hidden" 
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  disabled={isImporting}
+                />
+                
+                {isImporting ? (
+                  <div className="py-8">
+                    <motion.div 
+                      animate={{ rotate: 360 }} 
+                      transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                      className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-4"
+                    />
+                    <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">
+                      Processing... {importProgress > 0 ? `${importProgress}%` : ''}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <motion.button 
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => fileInputRef.current?.click()} 
+                      className="py-5 sm:py-6 bg-slate-100 dark:bg-slate-800 rounded-3xl font-bold uppercase tracking-widest text-xs sm:text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex flex-col items-center justify-center gap-2">
+                      <FileImage size={24} className="text-indigo-600" />
+                      <span>Upload Image</span>
+                    </motion.button>
+                    <motion.button 
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => fileInputRef.current?.click()} 
+                      className="py-5 sm:py-6 bg-slate-100 dark:bg-slate-800 rounded-3xl font-bold uppercase tracking-widest text-xs sm:text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex flex-col items-center justify-center gap-2">
+                      <FileSpreadsheet size={24} className="text-indigo-600" />
+                      <span>Upload CSV</span>
+                    </motion.button>
+                  </div>
+                )}
               </div>
             </div>
           </Modal>

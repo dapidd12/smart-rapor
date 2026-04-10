@@ -1,13 +1,12 @@
 
 import { AppData, Semester, Subject } from './types';
 
-export const calculateSemesterAverage = (semester: Semester, usePredictions = false): number => {
+export const calculateSemesterAverage = (semester: Semester, usePredictions = false, neededAvg = 0): number => {
   if (!semester || semester.subjects.length === 0) return 0;
   
   const scores = semester.subjects.map(s => {
-    // Gunakan nilai aktual jika ada, jika tidak (dan usePredictions true) gunakan prediksi user
     if (s.score > 0) return s.score;
-    if (usePredictions && s.prediction > 0) return s.prediction;
+    if (usePredictions && neededAvg > 0) return neededAvg;
     return 0;
   }).filter(v => v > 0);
 
@@ -16,9 +15,9 @@ export const calculateSemesterAverage = (semester: Semester, usePredictions = fa
   return sum / semester.subjects.length;
 };
 
-export const getSemesterStats = (semester: Semester) => {
+export const getSemesterStats = (semester: Semester, neededAvg = 0) => {
   if (!semester || semester.subjects.length === 0) return { highest: 0, lowest: 0, variance: 0 };
-  const scores = semester.subjects.map(s => s.score > 0 ? s.score : s.prediction).filter(s => s > 0);
+  const scores = semester.subjects.map(s => s.score > 0 ? s.score : neededAvg).filter(s => s > 0);
   if (scores.length === 0) return { highest: 0, lowest: 0, variance: 0 };
   
   const highest = Math.max(...scores);
@@ -29,8 +28,8 @@ export const getSemesterStats = (semester: Semester) => {
   return { highest, lowest, variance: Math.sqrt(variance) };
 };
 
-export const calculateOverallAverage = (semesters: Semester[]): number => {
-  const averages = semesters.map(s => calculateSemesterAverage(s, true)).filter(a => a > 0);
+export const calculateOverallAverage = (semesters: Semester[], neededAvg = 0): number => {
+  const averages = semesters.map(s => calculateSemesterAverage(s, true, neededAvg)).filter(a => a > 0);
   if (averages.length === 0) return 0;
   return averages.reduce((acc, avg) => acc + avg, 0) / averages.length;
 };
