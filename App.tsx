@@ -29,7 +29,7 @@ const Modal = ({ children, onClose, maxWidth = 'max-w-xl' }: { children?: React.
     className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 print-hide"
     onClick={onClose}>
     <motion.div initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 30 }}
-      className={`bg-white dark:bg-slate-900 w-full ${maxWidth} rounded-[2.5rem] p-8 sm:p-12 shadow-3xl border border-slate-200 dark:border-slate-800 relative overflow-hidden`}
+      className={`bg-white dark:bg-slate-900 w-full ${maxWidth} rounded-3xl p-8 sm:p-12 shadow-2xl border border-slate-200/50 dark:border-slate-800/50 relative overflow-hidden`}
       onClick={e => e.stopPropagation()}>
       <div className="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>
       <button onClick={onClose} className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 hover:scale-110 transition-all text-slate-500">✕</button>
@@ -255,15 +255,21 @@ const App: React.FC = () => {
     const percentage = Math.min(100, (value / target) * 100);
     return (
       <div className="relative w-28 h-28 md:w-32 md:h-32 flex items-center justify-center">
-        <svg className="w-full h-full -rotate-90">
-          <circle cx="50%" cy="50%" r="45%" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-100 dark:text-slate-800" />
-          <motion.circle cx="50%" cy="50%" r="45%" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray="283"
+        <svg className="w-full h-full -rotate-90 drop-shadow-xl">
+          <defs>
+            <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#818cf8" />
+              <stop offset="100%" stopColor="#4f46e5" />
+            </linearGradient>
+          </defs>
+          <circle cx="50%" cy="50%" r="45%" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-100 dark:text-slate-800/50" />
+          <motion.circle cx="50%" cy="50%" r="45%" stroke="url(#ringGradient)" strokeWidth="8" fill="transparent" strokeDasharray="283" strokeLinecap="round"
             initial={{ strokeDashoffset: 283 }} animate={{ strokeDashoffset: 283 - (283 * percentage) / 100 }}
-            className="text-indigo-600" />
+            transition={{ duration: 1.5, ease: "easeOut" }} />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl md:text-2xl font-black tech-font">{value.toFixed(1)}</span>
-          <span className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Current</span>
+          <span className="text-xl md:text-2xl font-black tech-font text-indigo-600 dark:text-indigo-400">{value.toFixed(1)}</span>
+          <span className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Avg</span>
         </div>
       </div>
     );
@@ -420,18 +426,20 @@ const App: React.FC = () => {
         </div>
 
         {/* WEB VIEW HERO */}
-        <header className="mb-12 md:mb-16 print-hide">
-          <motion.h2 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-4xl md:text-6xl font-bold tracking-tight mb-4 leading-tight">
+        <header className="relative mb-12 md:mb-16 print-hide">
+          <div className="absolute -top-20 -left-20 w-64 h-64 bg-indigo-500/10 dark:bg-indigo-500/20 blur-[100px] rounded-full pointer-events-none"></div>
+          <div className="absolute top-0 right-20 w-48 h-48 bg-purple-500/10 dark:bg-purple-500/20 blur-[80px] rounded-full pointer-events-none"></div>
+          <motion.h2 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="relative text-4xl md:text-6xl font-bold tracking-tight mb-4 leading-tight z-10">
             {t.welcome},<br /><span className="gradient-text">{data.userName || t.explorer}</span>.
           </motion.h2>
-          <p className="text-slate-500 dark:text-slate-400 text-base md:text-lg font-medium max-w-2xl">{t.heroDesc}</p>
+          <p className="relative text-slate-500 dark:text-slate-400 text-base md:text-lg font-medium max-w-2xl z-10">{t.heroDesc}</p>
         </header>
 
         {/* WEB VIEW DASHBOARD */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12 md:mb-16 print-hide">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-            className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[2.5rem] md:rounded-[3.5rem] p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12 shadow-2xl border border-slate-100 dark:border-slate-800 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-8 opacity-5 text-slate-900 dark:text-white">
+            className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12 shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200/50 dark:border-slate-800/50 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-8 opacity-5 text-slate-900 dark:text-white transition-transform duration-700 group-hover:scale-110 group-hover:rotate-12">
               <TrendingUp size={120} strokeWidth={1} />
             </div>
             <div className="w-full md:w-auto text-center md:text-left z-10">
@@ -456,8 +464,9 @@ const App: React.FC = () => {
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className="bg-slate-950 dark:bg-indigo-600 rounded-[2.5rem] md:rounded-[3.5rem] p-8 md:p-12 text-white shadow-2xl flex flex-col justify-between">
-            <div>
+            className="bg-slate-950 dark:bg-indigo-950 rounded-3xl p-8 md:p-10 text-white shadow-xl flex flex-col justify-between border border-slate-800 dark:border-indigo-900/50 relative overflow-hidden">
+            <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-500/20 blur-3xl rounded-full pointer-events-none"></div>
+            <div className="relative z-10">
               <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">{t.configLabel}</span>
               <h3 className="text-2xl font-bold mt-2 mb-8">{t.roadmapTargetLabel}</h3>
               <div className="space-y-6">
@@ -469,7 +478,7 @@ const App: React.FC = () => {
                 </div>
               </div>
             </div>
-            <button onClick={handleReset} className="w-full py-4 mt-8 bg-white/10 hover:bg-white/20 rounded-2xl font-bold uppercase text-[10px] tracking-widest transition-colors">
+            <button onClick={handleReset} className="relative z-10 w-full py-4 mt-8 bg-white/10 hover:bg-white/20 rounded-2xl font-bold uppercase text-[10px] tracking-widest transition-colors backdrop-blur-sm">
               {t.resetData}
             </button>
           </motion.div>
@@ -478,7 +487,7 @@ const App: React.FC = () => {
         {/* WEB VIEW CHART */}
         <section className="mb-12 md:mb-16 print-hide">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            className="bg-white dark:bg-slate-900 rounded-[2.5rem] md:rounded-[3.5rem] p-8 md:p-12 shadow-2xl border border-slate-100 dark:border-slate-800">
+            className="bg-white dark:bg-slate-900 rounded-3xl p-8 md:p-10 shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200/50 dark:border-slate-800/50">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
               <div>
                 <h3 className="text-2xl font-bold tracking-tight uppercase">{t.performanceTrend}</h3>
@@ -531,7 +540,7 @@ const App: React.FC = () => {
 
           <AnimatePresence mode="wait">
             <motion.div key={activeSemesterId} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}
-              className="bg-white dark:bg-slate-900 rounded-[2.5rem] md:rounded-[3.5rem] p-6 md:p-14 shadow-2xl border border-slate-100 dark:border-slate-800">
+              className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-10 shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200/50 dark:border-slate-800/50">
               
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 md:mb-12">
                 <div>
@@ -540,20 +549,11 @@ const App: React.FC = () => {
                     {activeSemesterId === 1 ? t.masterData : t.strategyPrediction}
                   </p>
                 </div>
-                {activeSemesterId === 1 && (
-                  <motion.button 
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleAddSubject} 
-                    className="w-full md:w-auto px-8 py-4 bg-indigo-600 text-white rounded-2xl md:rounded-[1.5rem] font-bold text-xs uppercase tracking-widest shadow-xl hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
-                    <Plus size={16} strokeWidth={3} /> {t.addSubject}
-                  </motion.button>
-                )}
               </div>
 
               <div className="space-y-6 md:space-y-8">
                 {activeSemester?.subjects.length === 0 ? (
-                  <div className="py-12 md:py-16 flex flex-col items-center justify-center gap-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] text-slate-400">
+                  <div className="py-12 md:py-16 flex flex-col items-center justify-center gap-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl text-slate-400 bg-slate-50/50 dark:bg-slate-900/50">
                     <div className="text-center max-w-md mx-auto px-4">
                       <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
                         <BookOpen size={32} />
@@ -578,67 +578,84 @@ const App: React.FC = () => {
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={handleAddSubject} 
-                          className="w-full sm:w-auto px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-md hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 uppercase tracking-widest text-xs">
+                          className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-xs">
                           <Plus size={18} /> {t.addSubject}
                         </motion.button>
                       </div>
                     )}
                   </div>
-                ) : activeSemester?.subjects.map((sub, i) => {
-                  const isPredictionNeeded = sub.score === 0;
+                ) : (
+                  <AnimatePresence mode="popLayout">
+                    {activeSemester?.subjects.map((sub, i) => {
+                      const isPredictionNeeded = sub.score === 0;
 
-                  return (
-                    <motion.div key={sub.id} layout initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                      className="flex flex-col md:flex-row items-center gap-4 md:gap-6 bg-slate-50 dark:bg-slate-950 p-5 md:p-7 rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 group hover:border-indigo-400 transition-all">
-                      
-                      <div className="flex flex-col gap-1 flex-grow w-full">
-                        <div className="flex items-center gap-4 md:gap-6 w-full">
-                          <div className={`w-3 h-3 rounded-full flex-shrink-0 ${sub.score > 0 ? 'bg-emerald-500' : 'bg-indigo-400 animate-pulse'}`}></div>
-                          <input type="text" value={sub.name} readOnly={activeSemesterId !== 1}
-                            onChange={e => handleUpdateSubject(sub.id, 'name', e.target.value)}
-                            placeholder={t.subjectPlaceholder}
-                            className="bg-transparent font-bold text-lg md:text-xl outline-none w-full focus:text-indigo-600 uppercase" />
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-                        <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-row sm:gap-3 w-full sm:w-auto">
-                          {/* ACTUAL SCORE */}
-                          <div className="flex flex-col w-full sm:w-28">
-                            <span className="text-[10px] font-bold text-slate-400 mb-1 uppercase truncate">{t.scoreLabel}</span>
-                            <input type="number" value={sub.score || ''} onChange={e => handleUpdateSubject(sub.id, 'score', e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                              className="w-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl py-3 text-center font-bold text-xl focus:border-indigo-600 outline-none transition-all" placeholder="0" />
-                          </div>
-
-                          {/* USER PREDICTION */}
-                          <div className="flex flex-col w-full sm:w-28">
-                            <span className="text-[10px] font-bold text-indigo-400 mb-1 uppercase truncate">{t.predLabel}</span>
-                            <input type="number" value={sub.prediction || ''} onChange={e => handleUpdateSubject(sub.id, 'prediction', e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                              className="w-full bg-indigo-50 dark:bg-indigo-900/20 border-2 border-indigo-100 dark:border-indigo-800 rounded-xl py-3 text-center font-bold text-xl focus:border-indigo-500 outline-none transition-all" placeholder="0" />
-                          </div>
-
-                          {/* AI TARGET */}
-                          <div className="flex flex-col w-full sm:w-28">
-                            <span className="text-[10px] font-bold text-emerald-500 mb-1 uppercase truncate">{t.requiredLabel}</span>
-                            <div className="w-full bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-100 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 rounded-xl py-3 text-center font-bold text-xl">
-                              {neededAvg.toFixed(1)}
+                      return (
+                        <motion.div key={sub.id} layout initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: -10 }} transition={{ duration: 0.2 }}
+                          className="flex flex-col md:flex-row items-center gap-4 md:gap-6 bg-white dark:bg-slate-950 p-5 md:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 group hover:border-indigo-400/50 hover:shadow-md transition-all">
+                          
+                          <div className="flex flex-col gap-1 flex-grow w-full">
+                            <div className="flex items-center gap-4 md:gap-6 w-full">
+                              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${sub.score > 0 ? 'bg-emerald-500' : 'bg-indigo-400 animate-pulse'}`}></div>
+                              <input type="text" value={sub.name} readOnly={activeSemesterId !== 1}
+                                onChange={e => handleUpdateSubject(sub.id, 'name', e.target.value)}
+                                placeholder={t.subjectPlaceholder}
+                                className="bg-transparent font-bold text-lg md:text-xl outline-none w-full focus:text-indigo-600 uppercase" />
                             </div>
                           </div>
-                        </div>
 
-                        {activeSemesterId === 1 && (
-                          <motion.button 
-                            whileHover={{ scale: 1.1, color: '#f43f5e' }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => handleDeleteSubject(sub.id)} 
-                            className="w-full sm:w-auto mt-2 sm:mt-0 p-3 text-slate-400 bg-white dark:bg-slate-800 sm:bg-transparent rounded-xl sm:rounded-none border-2 border-slate-200 dark:border-slate-700 sm:border-none transition-colors flex items-center justify-center gap-2">
-                            <X size={20} strokeWidth={3} /> <span className="sm:hidden font-bold text-xs uppercase tracking-widest">{t.deleteLabel}</span>
-                          </motion.button>
-                        )}
-                      </div>
-                    </motion.div>
-                  );
-                })}
+                          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                            <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-row sm:gap-3 w-full sm:w-auto">
+                              {/* ACTUAL SCORE */}
+                              <div className="flex flex-col w-full sm:w-28">
+                                <span className="text-[10px] font-bold text-slate-400 mb-1 uppercase truncate">{t.scoreLabel}</span>
+                                <input type="number" value={sub.score || ''} onChange={e => handleUpdateSubject(sub.id, 'score', e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                                  className="w-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl py-3 text-center font-bold text-xl focus:border-indigo-600 outline-none transition-all" placeholder="0" />
+                              </div>
+
+                              {/* USER PREDICTION */}
+                              <div className="flex flex-col w-full sm:w-28">
+                                <span className="text-[10px] font-bold text-indigo-400 mb-1 uppercase truncate">{t.predLabel}</span>
+                                <input type="number" value={sub.prediction || ''} onChange={e => handleUpdateSubject(sub.id, 'prediction', e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                                  className="w-full bg-indigo-50 dark:bg-indigo-900/20 border-2 border-indigo-100 dark:border-indigo-800 rounded-xl py-3 text-center font-bold text-xl focus:border-indigo-500 outline-none transition-all" placeholder="0" />
+                              </div>
+
+                              {/* AI TARGET */}
+                              <div className="flex flex-col w-full sm:w-28">
+                                <span className="text-[10px] font-bold text-emerald-500 mb-1 uppercase truncate">{t.requiredLabel}</span>
+                                <div className="w-full bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-100 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 rounded-xl py-3 text-center font-bold text-xl">
+                                  {neededAvg.toFixed(1)}
+                                </div>
+                              </div>
+                            </div>
+
+                            {activeSemesterId === 1 && (
+                              <motion.button 
+                                whileHover={{ scale: 1.1, color: '#f43f5e' }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => handleDeleteSubject(sub.id)} 
+                                className="w-full sm:w-auto mt-2 sm:mt-0 p-3 text-slate-400 bg-white dark:bg-slate-800 sm:bg-transparent rounded-xl sm:rounded-none border-2 border-slate-200 dark:border-slate-700 sm:border-none transition-colors flex items-center justify-center gap-2">
+                                <X size={20} strokeWidth={3} /> <span className="sm:hidden font-bold text-xs uppercase tracking-widest">{t.deleteLabel}</span>
+                              </motion.button>
+                            )}
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                )}
+                
+                {/* Add Subject Button at Bottom */}
+                {activeSemesterId === 1 && activeSemester?.subjects && activeSemester.subjects.length > 0 && (
+                  <motion.div layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex justify-center mt-8 pt-4">
+                    <motion.button 
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleAddSubject} 
+                      className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
+                      <Plus size={16} strokeWidth={3} /> {t.addSubject}
+                    </motion.button>
+                  </motion.div>
+                )}
               </div>
             </motion.div>
           </AnimatePresence>
@@ -646,8 +663,8 @@ const App: React.FC = () => {
 
         {/* DIAGNOSIS TABLE SECTION */}
         <section className="mb-24 print-hide">
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
-            <div className="p-8 md:p-10 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200/50 dark:border-slate-800/50 overflow-hidden">
+            <div className="p-8 md:p-10 border-b border-slate-100 dark:border-slate-800/50 flex flex-col md:flex-row justify-between items-center gap-6">
               <h4 className="text-xl md:text-2xl font-bold uppercase tracking-tight">{t.diagnosisTable}</h4>
               <motion.button 
                 whileHover={{ scale: 1.05, y: -2 }}
@@ -713,8 +730,8 @@ const App: React.FC = () => {
         {/* SUBJECT ANALYSIS TABLE SECTION */}
         {subjectAverages.length > 0 && (
           <section className="mb-24 print-hide">
-            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
-              <div className="p-8 md:p-10 border-b border-slate-100 dark:border-slate-800">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200/50 dark:border-slate-800/50 overflow-hidden">
+              <div className="p-8 md:p-10 border-b border-slate-100 dark:border-slate-800/50">
                 <h4 className="text-xl md:text-2xl font-bold uppercase tracking-tight">{t.subjectAnalysisTable}</h4>
               </div>
               <div className="overflow-x-auto no-scrollbar">
@@ -770,8 +787,8 @@ const App: React.FC = () => {
               whileTap={isCalculating || hasValidationErrors ? {} : { scale: 0.98 }}
               disabled={isCalculating || hasValidationErrors} 
               onClick={runCalculation}
-              className={`w-full py-6 md:py-8 rounded-[2rem] font-bold text-xl md:text-2xl shadow-xl transition-colors flex items-center justify-center gap-3 relative overflow-hidden ${
-                isCalculating || hasValidationErrors ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700'
+              className={`w-full py-6 md:py-8 rounded-3xl font-bold text-xl md:text-2xl shadow-xl transition-all flex items-center justify-center gap-3 relative overflow-hidden ${
+                isCalculating || hasValidationErrors ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-2xl'
               }`}>
               {isCalculating ? (
                 <motion.div 
@@ -813,10 +830,10 @@ const App: React.FC = () => {
               <div className="space-y-6">
                 <input autoFocus type="text" value={tempName} onChange={e => setTempName(e.target.value)}
                   placeholder={t.enterName}
-                  className="w-full p-6 bg-slate-50 dark:bg-slate-800 rounded-[2rem] text-2xl font-bold text-center outline-none focus:ring-8 ring-indigo-500/10 border-2 border-slate-100 dark:border-slate-700 transition-all"
+                  className="w-full p-6 bg-slate-50 dark:bg-slate-800 rounded-2xl text-2xl font-bold text-center outline-none focus:ring-4 ring-indigo-500/20 border-2 border-slate-200 dark:border-slate-700 transition-all"
                   onKeyDown={e => e.key === 'Enter' && tempName.trim() && saveName()} />
                 <button onClick={saveName} disabled={!tempName.trim()}
-                  className={`w-full py-6 rounded-[2rem] font-bold uppercase tracking-[0.3em] shadow-xl text-lg transition-all ${
+                  className={`w-full py-5 rounded-2xl font-bold uppercase tracking-[0.2em] shadow-lg text-base transition-all ${
                     tempName.trim() ? 'bg-indigo-600 text-white hover:-translate-y-1' : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                   }`}>
                   {t.start}
@@ -835,7 +852,7 @@ const App: React.FC = () => {
               <h3 className="text-4xl font-bold text-indigo-600 mb-2 uppercase tracking-tighter">{data.userName}</h3>
               <h4 className="text-xl font-bold uppercase tracking-widest mb-12">{overallAvg >= data.targetAvg ? t.finalSuccess : t.finalFail}</h4>
               
-              <div className="relative p-12 md:p-16 bg-slate-950 text-white rounded-[3.5rem] md:rounded-[4.5rem] shadow-3xl mb-12 border-t-[12px] border-indigo-600 overflow-hidden">
+              <div className="relative p-10 md:p-14 bg-slate-950 text-white rounded-3xl shadow-2xl mb-12 border-t-[8px] border-indigo-600 overflow-hidden">
                 <div className="absolute -top-10 -right-10 w-40 h-40 bg-indigo-500/20 blur-3xl rounded-full"></div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500 mb-8">{t.combinedScore}</p>
                 <div className="text-8xl md:text-[10rem] font-bold text-indigo-400 leading-none tracking-tighter">{overallAvg.toFixed(1)}</div>
@@ -843,8 +860,20 @@ const App: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <button onClick={() => { window.print(); setActiveModal(null); }} className="py-6 bg-slate-100 dark:bg-slate-800 rounded-3xl font-bold uppercase tracking-widest text-sm md:text-base hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">{t.downloadPdf}</button>
-                <button onClick={() => setActiveModal(null)} className="py-6 bg-indigo-600 text-white rounded-3xl font-bold uppercase tracking-[0.3em] shadow-2xl text-lg hover:-translate-y-1 transition-all">{t.back}</button>
+                <motion.button 
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => { window.print(); setActiveModal(null); }} 
+                  className="py-6 bg-slate-100 dark:bg-slate-800 rounded-3xl font-bold uppercase tracking-widest text-sm md:text-base hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                  {t.downloadPdf}
+                </motion.button>
+                <motion.button 
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setActiveModal(null)} 
+                  className="py-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-3xl font-bold uppercase tracking-[0.3em] shadow-xl text-lg hover:shadow-2xl transition-all">
+                  {t.back}
+                </motion.button>
               </div>
             </div>
           </Modal>
