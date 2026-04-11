@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { Download, Sun, Moon, X, Plus, TrendingUp, TrendingDown, Minus, Trophy, Target, Award, AlertCircle, BookOpen, Info, Upload, FileImage, FileSpreadsheet } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 import Papa from 'papaparse';
@@ -116,15 +116,37 @@ const App: React.FC = () => {
   const completeSemestersCount = useMemo(() => data.semesters.filter(s => getSemesterStatus(s) === 'complete').length, [data.semesters, getSemesterStatus]);
 
   const neededAvg = useMemo(() => {
-    const remaining = data.totalSemestersTarget - completeSemestersCount;
-    if (remaining <= 0) return data.targetAvg;
-    const targetTotalSum = data.targetAvg * data.totalSemestersTarget;
-    const currentSumOfAverages = data.semesters
-      .filter(s => getSemesterStatus(s) === 'complete')
-      .reduce((acc, sem) => acc + calculateSemesterAverage(sem), 0);
-    const needed = (targetTotalSum - currentSumOfAverages) / remaining;
+    let currentSum = 0;
+    let currentCount = 0;
+    let emptyCountInExisting = 0;
+
+    data.semesters.forEach(s => {
+      s.subjects.forEach(sub => {
+        if (sub.score > 0) {
+          currentSum += sub.score;
+          currentCount++;
+        } else {
+          emptyCountInExisting++;
+        }
+      });
+    });
+
+    const baseSubjectCount = data.semesters[0]?.subjects?.length || 0;
+    if (baseSubjectCount === 0) return data.targetAvg;
+
+    const existingSemestersCount = data.semesters.length;
+    const futureSemestersCount = Math.max(0, data.totalSemestersTarget - existingSemestersCount);
+    
+    const remainingSubjects = emptyCountInExisting + (futureSemestersCount * baseSubjectCount);
+    
+    if (remainingSubjects === 0) return 0;
+
+    const totalExpectedSubjects = currentCount + remainingSubjects;
+    const totalTargetSum = data.targetAvg * totalExpectedSubjects;
+
+    const needed = (totalTargetSum - currentSum) / remainingSubjects;
     return Math.max(0, Math.min(100, needed));
-  }, [data.targetAvg, data.totalSemestersTarget, completeSemestersCount, data.semesters, getSemesterStatus]);
+  }, [data.targetAvg, data.totalSemestersTarget, data.semesters]);
 
   const overallAvg = useMemo(() => calculateOverallAverage(data.semesters, neededAvg), [data.semesters, neededAvg]);
 
@@ -403,8 +425,12 @@ const App: React.FC = () => {
 
   const saveName = () => {
     if (tempName.trim()) {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
       setData(prev => ({ ...prev, userName: tempName.trim() }));
       setShowWelcome(false);
+      setTimeout(() => window.scrollTo(0, 0), 50);
     }
   };
 
@@ -500,6 +526,33 @@ const App: React.FC = () => {
               <p className={`text-xl font-black mt-1 ${overallAvg >= data.targetAvg ? 'text-emerald-600' : 'text-rose-600'}`}>
                 {overallAvg >= data.targetAvg ? 'TARGET ACHIEVED' : 'NEEDS IMPROVEMENT'}
               </p>
+            </div>
+          </div>
+
+          {/* PRINT VIEW: Chart */}
+          <div className="mb-10 avoid-break">
+            <h4 className="text-sm font-black uppercase tracking-widest mb-4 text-slate-800 border-b border-slate-300 pb-2">{t.performanceTrend}</h4>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorCombinedPrint" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorActualPrint" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} dy={10} />
+                  <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} />
+                  <ReferenceLine y={data.targetAvg} stroke="#94a3b8" strokeDasharray="3 3" />
+                  <Area type="monotone" dataKey="Combined" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorCombinedPrint)" isAnimationActive={false} />
+                  <Area type="monotone" dataKey="Actual" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorActualPrint)" isAnimationActive={false} />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
@@ -663,7 +716,17 @@ const App: React.FC = () => {
             </div>
             <div className="h-56 sm:h-64 md:h-80 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorCombined" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={data.theme === 'dark' ? '#1e293b' : '#f1f5f9'} />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: data.theme === 'dark' ? '#64748b' : '#94a3b8', fontWeight: 700 }} dy={10} />
                   <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: data.theme === 'dark' ? '#64748b' : '#94a3b8', fontWeight: 700 }} />
@@ -672,9 +735,9 @@ const App: React.FC = () => {
                     itemStyle={{ fontWeight: 700 }}
                   />
                   <ReferenceLine y={data.targetAvg} stroke={data.theme === 'dark' ? '#334155' : '#cbd5e1'} strokeDasharray="3 3" />
-                  <Line type="monotone" dataKey="Combined" stroke="#4f46e5" strokeWidth={4} dot={{ r: 6, strokeWidth: 2 }} activeDot={{ r: 8 }} />
-                  <Line type="monotone" dataKey="Actual" stroke="#10b981" strokeWidth={4} dot={{ r: 6, strokeWidth: 2 }} />
-                </LineChart>
+                  <Area type="monotone" dataKey="Combined" stroke="#4f46e5" strokeWidth={4} fillOpacity={1} fill="url(#colorCombined)" activeDot={{ r: 8 }} />
+                  <Area type="monotone" dataKey="Actual" stroke="#10b981" strokeWidth={4} fillOpacity={1} fill="url(#colorActual)" />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           </motion.div>
