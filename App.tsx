@@ -31,10 +31,10 @@ const Modal = ({ children, onClose, maxWidth = 'max-w-xl' }: { children?: React.
     className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 print-hide"
     onClick={onClose}>
     <motion.div initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 30 }}
-      className={`bg-white dark:bg-slate-900 w-full ${maxWidth} rounded-3xl p-8 sm:p-12 shadow-2xl border border-slate-200/50 dark:border-slate-800/50 relative overflow-hidden`}
+      className={`bg-white dark:bg-slate-900 w-full ${maxWidth} rounded-3xl p-6 sm:p-8 md:p-12 shadow-2xl border border-slate-200/50 dark:border-slate-800/50 relative overflow-hidden max-h-[90vh] overflow-y-auto`}
       onClick={e => e.stopPropagation()}>
       <div className="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>
-      <button onClick={onClose} className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 hover:scale-110 transition-all text-slate-500">✕</button>
+      <button onClick={onClose} className="absolute top-4 right-4 sm:top-6 sm:right-6 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 hover:scale-110 transition-all text-slate-500 z-10">✕</button>
       {children}
     </motion.div>
   </motion.div>
@@ -1074,7 +1074,7 @@ const App: React.FC = () => {
               <div className="space-y-4 sm:space-y-6">
                 <input autoFocus type="text" value={tempName} onChange={e => setTempName(e.target.value)}
                   placeholder={t.enterName}
-                  className="w-full p-5 sm:p-6 bg-slate-50 dark:bg-slate-800 rounded-2xl text-xl sm:text-2xl font-bold text-center outline-none focus:ring-4 ring-indigo-500/20 border-2 border-slate-200 dark:border-slate-700 transition-all"
+                  className="w-full p-4 sm:p-6 bg-slate-50 dark:bg-slate-800 rounded-2xl text-lg sm:text-2xl font-bold text-center outline-none focus:ring-4 ring-indigo-500/20 border-2 border-slate-200 dark:border-slate-700 transition-all"
                   onKeyDown={e => e.key === 'Enter' && tempName.trim() && saveName()} />
                 <button onClick={saveName} disabled={!tempName.trim()}
                   className={`w-full py-4 sm:py-5 rounded-2xl font-bold uppercase tracking-[0.2em] shadow-lg text-sm sm:text-base transition-all ${
@@ -1096,10 +1096,10 @@ const App: React.FC = () => {
               <h3 className="text-3xl sm:text-4xl font-bold text-indigo-600 mb-2 uppercase tracking-tighter">{data.userName}</h3>
               <h4 className="text-lg sm:text-xl font-bold uppercase tracking-widest mb-8 sm:mb-12">{overallAvg >= data.targetAvg ? t.finalSuccess : t.finalFail}</h4>
               
-              <div className="relative p-8 sm:p-10 md:p-14 bg-slate-950 text-white rounded-3xl shadow-2xl mb-8 sm:mb-12 border-t-[8px] border-indigo-600 overflow-hidden">
+              <div className="relative p-6 sm:p-10 md:p-14 bg-slate-950 text-white rounded-3xl shadow-2xl mb-8 sm:mb-12 border-t-[8px] border-indigo-600 overflow-hidden">
                 <div className="absolute -top-10 -right-10 w-32 h-32 sm:w-40 sm:h-40 bg-indigo-500/20 blur-3xl rounded-full"></div>
                 <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500 mb-6 sm:mb-8">{t.combinedScore}</p>
-                <div className="text-7xl sm:text-8xl md:text-[10rem] font-bold text-indigo-400 leading-none tracking-tighter">{overallAvg.toFixed(1)}</div>
+                <div className="text-6xl sm:text-8xl md:text-[10rem] font-bold text-indigo-400 leading-none tracking-tighter">{overallAvg.toFixed(1)}</div>
                 <p className="mt-6 sm:mt-8 text-[10px] sm:text-xs font-bold opacity-40 uppercase tracking-[0.2em]">{t.roadmapStrategy}</p>
               </div>
 
