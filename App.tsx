@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { Download, Sun, Moon, X, Plus, TrendingUp, TrendingDown, Minus, Trophy, Target, Award, AlertCircle, BookOpen, Info, Upload, FileImage, FileSpreadsheet } from 'lucide-react';
-import Tesseract from 'tesseract.js';
+import { GoogleGenAI, Type } from "@google/genai";
 import Papa from 'papaparse';
 import { AppData, Semester, Subject } from './types';
 import { 
@@ -250,26 +250,7 @@ const App: React.FC = () => {
     setActiveModal('final');
   };
 
-  const parseImportedText = (text: string) => {
-    const lines = text.split('\n');
-    const parsedSubjects: { name: string, score: number }[] = [];
-    
-    lines.forEach(line => {
-      const numbers = line.match(/\b\d{1,3}(?:\.\d+)?\b/g);
-      if (numbers) {
-        const possibleScores = numbers.map(Number).filter(n => n >= 0 && n <= 100);
-        if (possibleScores.length > 0) {
-          const score = possibleScores[possibleScores.length - 1];
-          let name = line.replace(/\b\d{1,3}(?:\.\d+)?\b/g, '').replace(/[^a-zA-Z\s]/g, '').trim();
-          
-          if (name.length > 2) {
-             name = name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-             parsedSubjects.push({ name: name.substring(0, 30), score });
-          }
-        }
-      }
-    });
-
+  const processImportedSubjects = (parsedSubjects: { name: string, score: number }[]) => {
     if (parsedSubjects.length > 0) {
       setData(prev => {
         const newSemesters = [...prev.semesters];
@@ -310,6 +291,29 @@ const App: React.FC = () => {
     setIsImporting(false);
   };
 
+  const parseImportedText = (text: string) => {
+    const lines = text.split('\n');
+    const parsedSubjects: { name: string, score: number }[] = [];
+    
+    lines.forEach(line => {
+      const numbers = line.match(/\b\d{1,3}(?:\.\d+)?\b/g);
+      if (numbers) {
+        const possibleScores = numbers.map(Number).filter(n => n >= 0 && n <= 100);
+        if (possibleScores.length > 0) {
+          const score = possibleScores[possibleScores.length - 1];
+          let name = line.replace(/\b\d{1,3}(?:\.\d+)?\b/g, '').replace(/[^a-zA-Z\s]/g, '').trim();
+          
+          if (name.length > 2) {
+             name = name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+             parsedSubjects.push({ name: name.substring(0, 30), score });
+          }
+        }
+      }
+    });
+
+    processImportedSubjects(parsedSubjects);
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -319,18 +323,57 @@ const App: React.FC = () => {
 
     try {
       if (file.type.startsWith('image/')) {
-        const worker = await Tesseract.createWorker('eng+ind', 1, {
-          logger: m => {
-            if (m.status === 'recognizing text') {
-              setImportProgress(Math.round(m.progress * 100));
+        setImportProgress(10);
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve((reader.result as string).split(',')[1]);
+          reader.onerror = error => reject(error);
+        });
+        setImportProgress(40);
+        
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        const response = await ai.models.generateContent({
+          model: "gemini-3.1-pro-preview",
+          contents: [
+            {
+              inlineData: {
+                mimeType: file.type,
+                data: base64Data
+              }
+            },
+            "Extract the subjects and their corresponding scores from this report card image. Return the result as a JSON array of objects, where each object has a 'name' (string) and a 'score' (number). If a score is not found or invalid, skip it. Ensure the subject names are clean and properly capitalized. Do not include any markdown formatting, just the raw JSON array."
+          ],
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  name: { type: Type.STRING },
+                  score: { type: Type.NUMBER }
+                },
+                required: ["name", "score"]
+              }
             }
           }
         });
         
-        const { data: { text } } = await worker.recognize(file);
-        await worker.terminate();
-        
-        parseImportedText(text);
+        setImportProgress(90);
+        if (response.text) {
+          try {
+            const parsedData = JSON.parse(response.text);
+            processImportedSubjects(parsedData);
+          } catch (e) {
+            console.error("Failed to parse JSON from Gemini:", e);
+            alert('Failed to parse data from image.');
+            setIsImporting(false);
+          }
+        } else {
+          alert('Failed to extract data from image.');
+          setIsImporting(false);
+        }
       } else if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
         Papa.parse(file, {
           complete: (results) => {
@@ -430,78 +473,86 @@ const App: React.FC = () => {
         
         {/* PRINT VIEW: Header & Summary */}
         <div className="hidden print-block print-container">
-          <div className="flex justify-between items-end border-b border-slate-300 pb-4 mb-4">
+          <div className="border-b-2 border-slate-800 pb-6 mb-8 flex justify-between items-end">
             <div>
-              <h1 className="text-2xl font-black tracking-tight uppercase mb-1">Smart<span className="text-indigo-600">Rapor</span></h1>
-              <p className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">{t.detailedTranscript}</p>
+              <h1 className="text-3xl font-black tracking-tight uppercase mb-2">Smart<span className="text-indigo-600">Rapor</span></h1>
+              <p className="text-xs font-bold tracking-widest text-slate-500 uppercase">{t.detailedTranscript}</p>
             </div>
-            <div className="text-right">
-              <p className="text-[9px] font-bold text-slate-500 uppercase">{t.studentName}</p>
-              <p className="text-lg font-bold tracking-tight">{data.userName.toUpperCase()}</p>
-              <p className="text-[9px] font-bold text-slate-500 uppercase mt-1">{t.dateOfIssue}</p>
-              <p className="text-xs font-bold">{new Date().toLocaleDateString(data.language === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'full' })}</p>
+            <div className="text-right border-l-2 border-slate-200 pl-6">
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.studentName}</p>
+              <p className="text-xl font-black tracking-tight mb-2">{data.userName.toUpperCase()}</p>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.dateOfIssue}</p>
+              <p className="text-sm font-bold">{new Date().toLocaleDateString(data.language === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'long' })}</p>
             </div>
           </div>
 
-          <div className="flex gap-8 mb-6">
+          <div className="flex gap-12 mb-10 bg-slate-50 p-6 rounded-xl border border-slate-200">
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">{t.targetAvg}</p>
-              <p className="text-2xl font-black">{data.targetAvg.toFixed(1)}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">{t.targetAvg}</p>
+              <p className="text-3xl font-black">{data.targetAvg.toFixed(1)}</p>
             </div>
-            <div>
-              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">{t.overallAvg}</p>
-              <p className="text-2xl font-black text-indigo-600">{overallAvg.toFixed(1)}</p>
+            <div className="border-l-2 border-slate-200 pl-12">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">{t.overallAvg}</p>
+              <p className="text-3xl font-black text-indigo-600">{overallAvg.toFixed(1)}</p>
+            </div>
+            <div className="border-l-2 border-slate-200 pl-12">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Status</p>
+              <p className={`text-xl font-black mt-1 ${overallAvg >= data.targetAvg ? 'text-emerald-600' : 'text-rose-600'}`}>
+                {overallAvg >= data.targetAvg ? 'TARGET ACHIEVED' : 'NEEDS IMPROVEMENT'}
+              </p>
             </div>
           </div>
 
           {/* PRINT VIEW: Semester Detailed Tables */}
-          {data.semesters.map((sem, idx) => {
-            const status = getSemesterStatus(sem);
-            if (status === 'empty') return null;
-            return (
-              <div key={sem.id} className="mb-6">
-                <h4 className="text-base font-bold uppercase mb-2 text-slate-800">{t.semesterLabel} {sem.id.toString().padStart(2, '0')}</h4>
-                <table className="w-full">
-                  <thead>
-                    <tr>
-                      <th className="w-12 text-center">{t.noLabel}</th>
-                      <th>{t.subjectName}</th>
-                      <th className="w-24 text-center">{t.actualLabel}</th>
-                      <th className="w-24 text-center">{t.requiredLabel}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sem.subjects.map((sub, sIdx) => (
-                      <tr key={sub.id}>
-                        <td className="text-center text-slate-500">{sIdx + 1}</td>
-                        <td className="uppercase font-bold">{sub.name || '-'}</td>
-                        <td className="text-center">{sub.score || '-'}</td>
-                        <td className="text-center bg-slate-50 dark:bg-slate-900 font-bold">{neededAvg.toFixed(1)}</td>
+          <div className="grid grid-cols-2 gap-8 mb-8">
+            {data.semesters.map((sem, idx) => {
+              const status = getSemesterStatus(sem);
+              if (status === 'empty') return null;
+              return (
+                <div key={sem.id} className="mb-4 avoid-break">
+                  <h4 className="text-sm font-black uppercase tracking-widest mb-3 text-slate-800 border-b border-slate-300 pb-2">{t.semesterLabel} {sem.id.toString().padStart(2, '0')}</h4>
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr>
+                        <th className="w-8 text-center pb-2">{t.noLabel}</th>
+                        <th className="pb-2">{t.subjectName}</th>
+                        <th className="w-16 text-center pb-2">{t.actualLabel}</th>
+                        <th className="w-16 text-center pb-2">{t.requiredLabel}</th>
                       </tr>
-                    ))}
-                    <tr className="font-bold bg-slate-50 dark:bg-slate-800">
-                      <td colSpan={2} className="text-right uppercase text-[10px] tracking-widest text-slate-500">{t.semesterSummary}</td>
-                      <td colSpan={2} className="text-center text-base">{calculateSemesterAverage(sem, true).toFixed(2)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            );
-          })}
+                    </thead>
+                    <tbody>
+                      {sem.subjects.map((sub, sIdx) => (
+                        <tr key={sub.id}>
+                          <td className="text-center text-slate-500 py-1.5">{sIdx + 1}</td>
+                          <td className="uppercase font-bold py-1.5">{sub.name || '-'}</td>
+                          <td className="text-center font-bold py-1.5">{sub.score || '-'}</td>
+                          <td className="text-center font-bold text-indigo-600 py-1.5">{neededAvg.toFixed(1)}</td>
+                        </tr>
+                      ))}
+                      <tr className="border-t-2 border-slate-800">
+                        <td colSpan={2} className="text-right uppercase text-[9px] font-black tracking-widest text-slate-500 py-2">{t.semesterSummary}</td>
+                        <td colSpan={2} className="text-center font-black text-sm py-2">{calculateSemesterAverage(sem, true, neededAvg).toFixed(2)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })}
+          </div>
 
           {/* PRINT VIEW: Subject Analysis Table */}
           {subjectAverages.length > 0 && (
-            <div className="mb-6">
-              <h4 className="text-base font-bold uppercase mb-2 text-slate-800">{t.subjectAnalysisTable}</h4>
-              <table className="w-full">
+            <div className="mb-10 avoid-break">
+              <h4 className="text-sm font-black uppercase tracking-widest mb-4 text-slate-800 border-b border-slate-300 pb-2">{t.subjectAnalysisTable}</h4>
+              <table className="w-full text-xs">
                 <thead>
                   <tr>
-                    <th className="w-12 text-center">{t.noLabel}</th>
-                    <th>{t.subjectName}</th>
-                    <th className="w-24 text-center">{t.overallAvg}</th>
-                    <th className="w-24 text-center">{t.highestScore}</th>
-                    <th className="w-24 text-center">{t.lowestScore}</th>
-                    <th className="w-32 text-center">{t.status}</th>
+                    <th className="w-10 text-center pb-2">{t.noLabel}</th>
+                    <th className="pb-2">{t.subjectName}</th>
+                    <th className="w-20 text-center pb-2">{t.overallAvg}</th>
+                    <th className="w-20 text-center pb-2">{t.highestScore}</th>
+                    <th className="w-20 text-center pb-2">{t.lowestScore}</th>
+                    <th className="w-24 text-center pb-2">{t.status}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -509,12 +560,12 @@ const App: React.FC = () => {
                     const isHealthy = sub.avg >= data.targetAvg;
                     return (
                       <tr key={sIdx}>
-                        <td className="text-center text-slate-500">{sIdx + 1}</td>
-                        <td className="uppercase font-bold">{sub.name || '-'}</td>
-                        <td className="text-center font-bold">{sub.avg > 0 ? sub.avg.toFixed(1) : '-'}</td>
-                        <td className="text-center">{sub.highest > 0 ? sub.highest : '-'}</td>
-                        <td className="text-center">{sub.lowest > 0 && sub.lowest <= 100 ? sub.lowest : '-'}</td>
-                        <td className="uppercase text-center text-[10px] font-bold tracking-widest">{sub.avg > 0 ? (isHealthy ? t.onTrack : t.needsFocus) : '-'}</td>
+                        <td className="text-center text-slate-500 py-2">{sIdx + 1}</td>
+                        <td className="uppercase font-bold py-2">{sub.name || '-'}</td>
+                        <td className="text-center font-black py-2">{sub.avg > 0 ? sub.avg.toFixed(1) : '-'}</td>
+                        <td className="text-center font-bold text-emerald-600 py-2">{sub.highest > 0 ? sub.highest.toFixed(1) : '-'}</td>
+                        <td className="text-center font-bold text-rose-600 py-2">{sub.lowest > 0 && sub.lowest <= 100 ? sub.lowest.toFixed(1) : '-'}</td>
+                        <td className="uppercase text-center text-[9px] font-black tracking-widest py-2">{sub.avg > 0 ? (isHealthy ? t.onTrack : t.needsFocus) : '-'}</td>
                       </tr>
                     );
                   })}
@@ -524,13 +575,13 @@ const App: React.FC = () => {
           )}
 
           {/* PRINT VIEW: Evaluation & Motivation */}
-          <div className="mt-8 pt-6 border-t border-slate-300 avoid-break">
-            <h4 className="text-base font-bold uppercase mb-2 text-slate-800">{t.evalSummaryTitle}</h4>
-            <div className="bg-slate-50 p-4 border border-slate-200">
-              <p className="font-bold text-indigo-600 uppercase mb-1">
+          <div className="mt-12 pt-8 border-t-2 border-slate-800 avoid-break">
+            <h4 className="text-sm font-black uppercase tracking-widest mb-4 text-slate-800">{t.evalSummaryTitle}</h4>
+            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
+              <p className="font-black text-indigo-600 uppercase tracking-widest mb-2 text-sm">
                 {overallAvg >= data.targetAvg ? t.evalExcellentTitle : overallAvg >= data.targetAvg - 5 ? t.evalDevelopingTitle : t.evalNeedsImprovementTitle}
               </p>
-              <p className="text-slate-700 italic text-sm">
+              <p className="text-slate-700 italic text-sm leading-relaxed font-medium">
                 "{overallAvg >= data.targetAvg ? t.evalExcellentDesc : overallAvg >= data.targetAvg - 5 ? t.evalDevelopingDesc : t.evalNeedsImprovementDesc}"
               </p>
             </div>
@@ -702,6 +753,17 @@ const App: React.FC = () => {
                         </motion.button>
                       </div>
                     )}
+                    {activeSemesterId !== 1 && (
+                      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto px-4 justify-center">
+                        <motion.button 
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setActiveModal('import')} 
+                          className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-emerald-600 text-white rounded-2xl font-bold shadow-sm hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 uppercase tracking-widest text-[10px] sm:text-xs">
+                          <Upload size={16} className="sm:w-[18px] sm:h-[18px]" /> Import Data
+                        </motion.button>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <AnimatePresence mode="popLayout">
@@ -757,14 +819,23 @@ const App: React.FC = () => {
                 )}
                 
                 {/* Add Subject Button at Bottom */}
-                {activeSemesterId === 1 && activeSemester?.subjects && activeSemester.subjects.length > 0 && (
-                  <motion.div layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex justify-center mt-6 sm:mt-8 pt-2 sm:pt-4">
+                {activeSemester?.subjects && activeSemester.subjects.length > 0 && (
+                  <motion.div layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row justify-center gap-4 mt-6 sm:mt-8 pt-2 sm:pt-4">
+                    {activeSemesterId === 1 && (
+                      <motion.button 
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleAddSubject} 
+                        className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
+                        <Plus size={16} strokeWidth={3} /> {t.addSubject}
+                      </motion.button>
+                    )}
                     <motion.button 
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={handleAddSubject} 
-                      className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
-                      <Plus size={16} strokeWidth={3} /> {t.addSubject}
+                      onClick={() => setActiveModal('import')} 
+                      className="w-full sm:w-auto px-8 py-4 bg-emerald-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
+                      <Upload size={16} strokeWidth={3} /> Import Data
                     </motion.button>
                   </motion.div>
                 )}
@@ -776,26 +847,26 @@ const App: React.FC = () => {
         {/* DIAGNOSIS TABLE SECTION */}
         <section className="mb-12 sm:mb-16 md:mb-24 print-hide">
           <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200/50 dark:border-slate-800/50 overflow-hidden">
-            <div className="p-5 sm:p-6 md:p-10 border-b border-slate-100 dark:border-slate-800/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-6">
-              <h4 className="text-lg sm:text-xl md:text-2xl font-bold uppercase tracking-tight">{t.diagnosisTable}</h4>
+            <div className="p-5 sm:p-6 md:p-8 border-b border-slate-100 dark:border-slate-800/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-6">
+              <h4 className="text-lg sm:text-xl font-bold uppercase tracking-tight">{t.diagnosisTable}</h4>
               <motion.button 
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => window.print()} 
-                className="w-full md:w-auto px-6 md:px-8 py-3 md:py-4 bg-indigo-600 text-white rounded-xl md:rounded-2xl font-bold text-[10px] md:text-xs uppercase tracking-widest transition-colors print-hide flex items-center justify-center gap-2">
+                className="w-full md:w-auto px-6 md:px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold text-[10px] md:text-xs uppercase tracking-widest transition-colors print-hide flex items-center justify-center gap-2">
                 <Download size={16} strokeWidth={3} /> {t.exportPdf}
               </motion.button>
             </div>
             <div className="overflow-x-auto no-scrollbar">
-              <table className="w-full text-left border-collapse min-w-[900px]">
+              <table className="w-full text-left border-collapse min-w-[800px]">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800 uppercase text-[9px] md:text-[10px]">
-                    <th className="px-5 sm:px-6 md:px-10 py-4 sm:py-5 md:py-8 font-bold tracking-widest text-slate-400">{t.semesterLabel}</th>
-                    <th className="px-5 sm:px-6 md:px-10 py-4 sm:py-5 md:py-8 font-bold tracking-widest text-slate-400">{t.actualAvgLabel}</th>
-                    <th className="px-5 sm:px-6 md:px-10 py-4 sm:py-5 md:py-8 font-bold tracking-widest text-slate-400">{t.combinedAvgLabel}</th>
-                    <th className="px-5 sm:px-6 md:px-10 py-4 sm:py-5 md:py-8 font-bold tracking-widest text-slate-400">{t.peakPerformance}</th>
-                    <th className="px-5 sm:px-6 md:px-10 py-4 sm:py-5 md:py-8 font-bold tracking-widest text-slate-400">{t.stability}</th>
-                    <th className="px-5 sm:px-6 md:px-10 py-4 sm:py-5 md:py-8 font-bold tracking-widest text-slate-400">{t.progressLabel}</th>
+                    <th className="px-4 sm:px-6 py-4 font-bold tracking-widest text-slate-400">{t.semesterLabel}</th>
+                    <th className="px-4 sm:px-6 py-4 font-bold tracking-widest text-slate-400">{t.actualAvgLabel}</th>
+                    <th className="px-4 sm:px-6 py-4 font-bold tracking-widest text-slate-400">{t.combinedAvgLabel}</th>
+                    <th className="px-4 sm:px-6 py-4 font-bold tracking-widest text-slate-400">{t.peakPerformance}</th>
+                    <th className="px-4 sm:px-6 py-4 font-bold tracking-widest text-slate-400">{t.stability}</th>
+                    <th className="px-4 sm:px-6 py-4 font-bold tracking-widest text-slate-400">{t.progressLabel}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -808,25 +879,25 @@ const App: React.FC = () => {
                     
                     return (
                       <tr key={s.id} className="hover:bg-indigo-50/20 dark:hover:bg-indigo-500/5 transition-colors">
-                        <td className="px-5 sm:px-6 md:px-10 py-4 sm:py-5 md:py-8 font-bold text-lg sm:text-xl md:text-2xl">{s.id.toString().padStart(2, '0')}</td>
-                        <td className="px-5 sm:px-6 md:px-10 py-4 sm:py-5 md:py-8 font-bold text-lg sm:text-xl md:text-2xl text-slate-400">
+                        <td className="px-4 sm:px-6 py-4 sm:py-5 font-bold text-base sm:text-lg">{s.id.toString().padStart(2, '0')}</td>
+                        <td className="px-4 sm:px-6 py-4 sm:py-5 font-bold text-base sm:text-lg text-slate-400">
                           {actualAvg > 0 ? actualAvg.toFixed(1) : '---'}
                         </td>
-                        <td className="px-5 sm:px-6 md:px-10 py-4 sm:py-5 md:py-8 font-bold text-2xl sm:text-3xl md:text-4xl text-indigo-600">
+                        <td className="px-4 sm:px-6 py-4 sm:py-5 font-bold text-xl sm:text-2xl text-indigo-600">
                           {combinedAvg > 0 ? combinedAvg.toFixed(1) : '---'}
                         </td>
-                        <td className="px-5 sm:px-6 md:px-10 py-4 sm:py-5 md:py-8 font-bold text-lg sm:text-xl md:text-2xl text-emerald-600">
-                          {stats.highest > 0 ? stats.highest : '---'}
+                        <td className="px-4 sm:px-6 py-4 sm:py-5 font-bold text-base sm:text-lg text-emerald-600">
+                          {stats.highest > 0 ? stats.highest.toFixed(1) : '---'}
                         </td>
-                        <td className="px-5 sm:px-6 md:px-10 py-4 sm:py-5 md:py-8">
+                        <td className="px-4 sm:px-6 py-4 sm:py-5">
                           {combinedAvg > 0 ? (
-                            <span className={`text-[9px] sm:text-[10px] md:text-xs font-bold uppercase px-2 sm:px-3 py-1 rounded-full ${isHealthy ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20' : 'bg-amber-100 text-amber-600 dark:bg-amber-500/20'}`}>
+                            <span className={`text-[9px] sm:text-[10px] font-bold uppercase px-2 sm:px-3 py-1 rounded-full ${isHealthy ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20' : 'bg-amber-100 text-amber-600 dark:bg-amber-500/20'}`}>
                               {isHealthy ? t.stable : t.volatile}
                             </span>
                           ) : '---'}
                         </td>
-                        <td className="px-5 sm:px-6 md:px-10 py-4 sm:py-5 md:py-8">
-                          <div className={`h-1.5 sm:h-2 w-16 sm:w-20 md:w-24 rounded-full overflow-hidden ${status === 'complete' ? 'bg-emerald-100' : 'bg-slate-100 dark:bg-slate-800'}`}>
+                        <td className="px-4 sm:px-6 py-4 sm:py-5">
+                          <div className={`h-1.5 sm:h-2 w-16 sm:w-20 rounded-full overflow-hidden ${status === 'complete' ? 'bg-emerald-100' : 'bg-slate-100 dark:bg-slate-800'}`}>
                             <div className={`h-full transition-all duration-1000 ${status === 'complete' ? 'bg-emerald-500 w-full' : status === 'partial' ? 'bg-amber-500 w-1/2' : 'w-0'}`}></div>
                           </div>
                         </td>
@@ -843,18 +914,18 @@ const App: React.FC = () => {
         {subjectAverages.length > 0 && (
           <section className="mb-12 sm:mb-16 md:mb-24 print-hide">
             <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200/50 dark:border-slate-800/50 overflow-hidden">
-              <div className="p-5 sm:p-6 md:p-10 border-b border-slate-100 dark:border-slate-800/50">
-                <h4 className="text-lg sm:text-xl md:text-2xl font-bold uppercase tracking-tight">{t.subjectAnalysisTable}</h4>
+              <div className="p-5 sm:p-6 md:p-8 border-b border-slate-100 dark:border-slate-800/50">
+                <h4 className="text-lg sm:text-xl font-bold uppercase tracking-tight">{t.subjectAnalysisTable}</h4>
               </div>
               <div className="overflow-x-auto no-scrollbar">
                 <table className="w-full text-left border-collapse min-w-[700px]">
                   <thead>
                     <tr className="bg-slate-50 dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800 uppercase text-[9px] md:text-[10px]">
-                      <th className="px-5 sm:px-6 md:px-10 py-4 sm:py-5 md:py-8 font-bold tracking-widest text-slate-400">{t.subjectName}</th>
-                      <th className="px-5 sm:px-6 md:px-10 py-4 sm:py-5 md:py-8 font-bold tracking-widest text-slate-400">{t.overallAvg}</th>
-                      <th className="px-5 sm:px-6 md:px-10 py-4 sm:py-5 md:py-8 font-bold tracking-widest text-slate-400">{t.highestScore}</th>
-                      <th className="px-5 sm:px-6 md:px-10 py-4 sm:py-5 md:py-8 font-bold tracking-widest text-slate-400">{t.lowestScore}</th>
-                      <th className="px-5 sm:px-6 md:px-10 py-4 sm:py-5 md:py-8 font-bold tracking-widest text-slate-400">{t.status}</th>
+                      <th className="px-4 sm:px-6 py-4 font-bold tracking-widest text-slate-400">{t.subjectName}</th>
+                      <th className="px-4 sm:px-6 py-4 font-bold tracking-widest text-slate-400">{t.overallAvg}</th>
+                      <th className="px-4 sm:px-6 py-4 font-bold tracking-widest text-slate-400">{t.highestScore}</th>
+                      <th className="px-4 sm:px-6 py-4 font-bold tracking-widest text-slate-400">{t.lowestScore}</th>
+                      <th className="px-4 sm:px-6 py-4 font-bold tracking-widest text-slate-400">{t.status}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -862,17 +933,17 @@ const App: React.FC = () => {
                       const isHealthy = sub.avg >= data.targetAvg;
                       return (
                         <tr key={idx} className="hover:bg-indigo-50/20 dark:hover:bg-indigo-500/5 transition-colors">
-                          <td className="px-5 sm:px-6 md:px-10 py-4 sm:py-5 md:py-8 font-bold uppercase text-xs sm:text-sm md:text-base">{sub.name}</td>
-                          <td className="px-5 sm:px-6 md:px-10 py-4 sm:py-5 md:py-8 font-bold text-xl sm:text-2xl md:text-3xl text-indigo-600">
+                          <td className="px-4 sm:px-6 py-4 sm:py-5 font-bold uppercase text-xs sm:text-sm">{sub.name}</td>
+                          <td className="px-4 sm:px-6 py-4 sm:py-5 font-bold text-lg sm:text-xl text-indigo-600">
                             {sub.avg > 0 ? sub.avg.toFixed(1) : '---'}
                           </td>
-                          <td className="px-5 sm:px-6 md:px-10 py-4 sm:py-5 md:py-8 font-bold text-lg sm:text-xl md:text-2xl text-emerald-600">
-                            {sub.highest > 0 ? sub.highest : '---'}
+                          <td className="px-4 sm:px-6 py-4 sm:py-5 font-bold text-base sm:text-lg text-emerald-600">
+                            {sub.highest > 0 ? sub.highest.toFixed(1) : '---'}
                           </td>
-                          <td className="px-5 sm:px-6 md:px-10 py-4 sm:py-5 md:py-8 font-bold text-lg sm:text-xl md:text-2xl text-rose-500">
-                            {sub.lowest > 0 && sub.lowest <= 100 ? sub.lowest : '---'}
+                          <td className="px-4 sm:px-6 py-4 sm:py-5 font-bold text-base sm:text-lg text-rose-500">
+                            {sub.lowest > 0 && sub.lowest <= 100 ? sub.lowest.toFixed(1) : '---'}
                           </td>
-                          <td className="px-5 sm:px-6 md:px-10 py-4 sm:py-5 md:py-8">
+                          <td className="px-4 sm:px-6 py-4 sm:py-5">
                             {sub.avg > 0 ? (
                               <div className="flex items-center gap-2">
                                 <span className={`text-[9px] sm:text-[10px] font-bold uppercase px-2 sm:px-3 py-1 rounded-full ${isHealthy ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20' : 'bg-rose-100 text-rose-600 dark:bg-rose-500/20'}`}>
