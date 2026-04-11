@@ -441,8 +441,8 @@ const App: React.FC = () => {
         <svg className="w-full h-full -rotate-90 drop-shadow-xl">
           <defs>
             <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#818cf8" />
-              <stop offset="100%" stopColor="#4f46e5" />
+              <stop offset="0%" stopColor="#4f46e5" />
+              <stop offset="100%" stopColor="#ec4899" />
             </linearGradient>
           </defs>
           <circle cx="50%" cy="50%" r="45%" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-100 dark:text-slate-800/50" />
@@ -536,8 +536,8 @@ const App: React.FC = () => {
               <AreaChart width={700} height={250} data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorCombinedPrint" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#ec4899" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
                   </linearGradient>
                   <linearGradient id="colorActualPrint" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
@@ -548,7 +548,7 @@ const App: React.FC = () => {
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} dy={10} />
                 <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} />
                 <ReferenceLine y={data.targetAvg} stroke="#94a3b8" strokeDasharray="3 3" />
-                <Area type="monotone" dataKey="Combined" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorCombinedPrint)" isAnimationActive={false} />
+                <Area type="monotone" dataKey="Combined" stroke="#ec4899" strokeWidth={3} fillOpacity={1} fill="url(#colorCombinedPrint)" isAnimationActive={false} />
                 <Area type="monotone" dataKey="Actual" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorActualPrint)" isAnimationActive={false} />
               </AreaChart>
             </div>
@@ -652,7 +652,7 @@ const App: React.FC = () => {
         {/* WEB VIEW DASHBOARD */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-10 sm:mb-12 md:mb-16 print-hide">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-            className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 md:gap-12 shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200/50 dark:border-slate-800/50 relative overflow-hidden group">
+            className="lg:col-span-2 glass rounded-3xl p-6 sm:p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 md:gap-12 shadow-lg shadow-slate-200/40 dark:shadow-none relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-8 opacity-5 text-slate-900 dark:text-white transition-transform duration-700 group-hover:scale-110 group-hover:rotate-12">
               <TrendingUp size={120} strokeWidth={1} />
             </div>
@@ -660,15 +660,17 @@ const App: React.FC = () => {
               <span className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400">{t.targetAvg}</span>
               <div className="flex items-center justify-center md:justify-start gap-3 mt-2 sm:mt-3">
                 <input type="number" value={data.targetAvg === 0 ? '' : data.targetAvg} onChange={e => setData(d => ({ ...d, targetAvg: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0 }))}
-                  className="w-20 sm:w-24 md:w-32 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-2xl p-3 md:p-4 text-2xl sm:text-3xl md:text-4xl font-bold text-center outline-none transition-all" />
+                  className="w-20 sm:w-24 md:w-32 glass border-2 border-slate-200/50 dark:border-slate-700/50 focus:border-indigo-500 rounded-2xl p-3 md:p-4 text-2xl sm:text-3xl md:text-4xl font-bold text-center outline-none transition-all" />
                 <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-300">/ 100</span>
               </div>
+              <p className="text-[10px] sm:text-xs text-slate-400 mt-2 font-medium">Berapa rata-rata nilai yang ingin kamu capai saat lulus?</p>
+              
               <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-6 sm:mt-8">
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4">
+                <div className="glass rounded-2xl p-4">
                   <span className="text-[10px] font-bold text-slate-400 block mb-1 uppercase">{t.minTargetPerSmt}</span>
                   <span className="text-xl md:text-2xl font-bold text-indigo-600">{neededAvg.toFixed(1)}</span>
                 </div>
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4">
+                <div className="glass rounded-2xl p-4">
                   <span className="text-[10px] font-bold text-slate-400 block mb-1 uppercase">{t.status}</span>
                   <span className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white">{completeSemestersCount}/{data.totalSemestersTarget} SMT</span>
                 </div>
@@ -678,11 +680,12 @@ const App: React.FC = () => {
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className="bg-slate-950 dark:bg-indigo-950 rounded-3xl p-6 sm:p-8 md:p-10 text-white shadow-xl flex flex-col justify-between border border-slate-800 dark:border-indigo-900/50 relative overflow-hidden">
+            className="bg-gradient-to-br from-slate-900 to-slate-950 dark:from-slate-900 dark:to-black rounded-3xl p-6 sm:p-8 md:p-10 text-white shadow-xl flex flex-col justify-between border border-slate-800 relative overflow-hidden">
             <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-500/20 blur-3xl rounded-full pointer-events-none"></div>
             <div className="relative z-10">
               <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">{t.configLabel}</span>
-              <h3 className="text-2xl font-bold mt-2 mb-8">{t.roadmapTargetLabel}</h3>
+              <h3 className="text-2xl font-bold mt-2 mb-2">{t.roadmapTargetLabel}</h3>
+              <p className="text-xs text-indigo-200/60 mb-8 font-medium">Berapa semester total yang akan kamu tempuh hingga lulus?</p>
               <div className="space-y-6">
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-widest opacity-60 block mb-3">{t.totalSemesters}</label>
@@ -701,7 +704,7 @@ const App: React.FC = () => {
         {/* WEB VIEW CHART */}
         <section className="mb-10 sm:mb-12 md:mb-16 print-hide">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 md:p-10 shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200/50 dark:border-slate-800/50">
+            className="glass rounded-3xl p-6 sm:p-8 md:p-10 shadow-lg shadow-slate-200/40 dark:shadow-none">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 sm:mb-8">
               <div>
                 <h3 className="text-xl sm:text-2xl font-bold tracking-tight uppercase">{t.performanceTrend}</h3>
@@ -717,8 +720,8 @@ const App: React.FC = () => {
                 <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorCombined" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#ec4899" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
                     </linearGradient>
                     <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
@@ -733,7 +736,7 @@ const App: React.FC = () => {
                     itemStyle={{ fontWeight: 700 }}
                   />
                   <ReferenceLine y={data.targetAvg} stroke={data.theme === 'dark' ? '#334155' : '#cbd5e1'} strokeDasharray="3 3" />
-                  <Area type="monotone" dataKey="Combined" stroke="#4f46e5" strokeWidth={4} fillOpacity={1} fill="url(#colorCombined)" activeDot={{ r: 8 }} />
+                  <Area type="monotone" dataKey="Combined" stroke="#ec4899" strokeWidth={4} fillOpacity={1} fill="url(#colorCombined)" activeDot={{ r: 8 }} />
                   <Area type="monotone" dataKey="Actual" stroke="#10b981" strokeWidth={4} fillOpacity={1} fill="url(#colorActual)" />
                 </AreaChart>
               </ResponsiveContainer>
@@ -754,7 +757,7 @@ const App: React.FC = () => {
                   key={s.id} 
                   onClick={() => setActiveSemesterId(s.id)}
                   className={`flex-shrink-0 px-4 sm:px-6 md:px-8 py-3 md:py-4 rounded-2xl md:rounded-3xl font-bold text-[9px] sm:text-[10px] md:text-xs uppercase tracking-widest transition-colors border-2 ${
-                    active ? 'bg-indigo-600 border-indigo-600 text-white shadow-xl' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400 hover:border-indigo-400'
+                    active ? 'bg-gradient-to-r from-indigo-600 to-pink-500 border-transparent text-white shadow-xl shadow-indigo-500/20' : 'glass border-slate-200 dark:border-slate-800 text-slate-400 hover:border-indigo-400'
                   }`}>
                   SMT {s.id} {status === 'complete' && '✓'}
                 </motion.button>
@@ -764,7 +767,7 @@ const App: React.FC = () => {
 
           <AnimatePresence mode="wait">
             <motion.div key={activeSemesterId} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}
-              className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 md:p-10 shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200/50 dark:border-slate-800/50">
+              className="glass rounded-3xl p-6 sm:p-8 md:p-10 shadow-lg shadow-slate-200/40 dark:shadow-none">
               
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-6 mb-8 md:mb-12">
                 <div>
@@ -795,34 +798,45 @@ const App: React.FC = () => {
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() => setActiveModal('import')} 
-                          className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 rounded-2xl font-bold shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 uppercase tracking-widest text-[10px] sm:text-xs">
+                          className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 glass text-indigo-600 dark:text-indigo-400 rounded-2xl font-bold shadow-sm hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors flex items-center justify-center gap-2 uppercase tracking-widest text-[10px] sm:text-xs">
                           <Upload size={16} className="sm:w-[18px] sm:h-[18px]" /> Import Data
                         </motion.button>
                         <motion.button 
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={handleUseTemplate} 
-                          className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 rounded-2xl font-bold shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 uppercase tracking-widest text-[10px] sm:text-xs">
+                          className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 glass text-indigo-600 dark:text-indigo-400 rounded-2xl font-bold shadow-sm hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors flex items-center justify-center gap-2 uppercase tracking-widest text-[10px] sm:text-xs">
                           <Plus size={16} className="sm:w-[18px] sm:h-[18px]" /> {t.useTemplate}
                         </motion.button>
                         <motion.button 
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={handleAddSubject} 
-                          className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-[10px] sm:text-xs">
+                          className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-indigo-600 to-pink-500 text-white rounded-2xl font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-[10px] sm:text-xs">
                           <Plus size={16} className="sm:w-[18px] sm:h-[18px]" /> {t.addSubject}
                         </motion.button>
                       </div>
                     )}
                     {activeSemesterId !== 1 && (
-                      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto px-4 justify-center">
-                        <motion.button 
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => setActiveModal('import')} 
-                          className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-emerald-600 text-white rounded-2xl font-bold shadow-sm hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 uppercase tracking-widest text-[10px] sm:text-xs">
-                          <Upload size={16} className="sm:w-[18px] sm:h-[18px]" /> Import Data
-                        </motion.button>
+                      <div className="flex flex-col items-center gap-4 w-full px-4">
+                        <p className="text-sm font-bold text-slate-500 mb-1">{t.emptyState}</p>
+                        <p className="text-xs text-slate-400 mb-4 max-w-sm text-center">{t.emptyStateDesc}</p>
+                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto justify-center">
+                          <motion.button 
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setActiveModal('import')} 
+                            className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 glass text-indigo-600 dark:text-indigo-400 rounded-2xl font-bold shadow-sm hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors flex items-center justify-center gap-2 uppercase tracking-widest text-[10px] sm:text-xs">
+                            <Upload size={16} className="sm:w-[18px] sm:h-[18px]" /> Import Data
+                          </motion.button>
+                          <motion.button 
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={handleAddSubject} 
+                            className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-indigo-600 to-pink-500 text-white rounded-2xl font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-[10px] sm:text-xs">
+                            <Plus size={16} className="sm:w-[18px] sm:h-[18px]" /> {t.addSubject}
+                          </motion.button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -851,13 +865,13 @@ const App: React.FC = () => {
                               <div className="flex flex-col w-full sm:w-24 md:w-28">
                                 <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 mb-1 uppercase truncate">{t.scoreLabel}</span>
                                 <input type="number" value={sub.score || ''} onChange={e => handleUpdateSubject(sub.id, 'score', e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                  className="w-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl py-2.5 sm:py-3 text-center font-bold text-lg sm:text-xl focus:border-indigo-600 outline-none transition-all" placeholder="0" />
+                                  className="w-full glass border-2 border-slate-200/50 dark:border-slate-700/50 rounded-xl py-2.5 sm:py-3 text-center font-bold text-lg sm:text-xl focus:border-indigo-500 outline-none transition-all" placeholder="0" />
                               </div>
 
                               {/* REQUIRED SCORE */}
                               <div className="flex flex-col w-full sm:w-24 md:w-28">
-                                <span className="text-[9px] sm:text-[10px] font-bold text-indigo-400 mb-1 uppercase truncate">{t.requiredLabel}</span>
-                                <div className="w-full bg-indigo-50 dark:bg-indigo-900/20 border-2 border-indigo-100 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 rounded-xl py-2.5 sm:py-3 text-center font-bold text-lg sm:text-xl">
+                                <span className="text-[9px] sm:text-[10px] font-bold text-pink-500 mb-1 uppercase truncate">{t.requiredLabel}</span>
+                                <div className="w-full bg-pink-50 dark:bg-pink-900/20 border-2 border-pink-100 dark:border-pink-800/50 text-pink-600 dark:text-pink-400 rounded-xl py-2.5 sm:py-3 text-center font-bold text-lg sm:text-xl">
                                   {neededAvg.toFixed(1)}
                                 </div>
                               </div>
@@ -887,7 +901,7 @@ const App: React.FC = () => {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={handleAddSubject} 
-                        className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
+                        className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-600 to-pink-500 text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
                         <Plus size={16} strokeWidth={3} /> {t.addSubject}
                       </motion.button>
                     )}
@@ -907,14 +921,14 @@ const App: React.FC = () => {
 
         {/* DIAGNOSIS TABLE SECTION */}
         <section className="mb-12 sm:mb-16 md:mb-24 print-hide">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200/50 dark:border-slate-800/50 overflow-hidden">
+          <div className="glass rounded-3xl shadow-lg shadow-slate-200/40 dark:shadow-none overflow-hidden">
             <div className="p-5 sm:p-6 md:p-8 border-b border-slate-100 dark:border-slate-800/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-6">
               <h4 className="text-lg sm:text-xl font-bold uppercase tracking-tight">{t.diagnosisTable}</h4>
               <motion.button 
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => window.print()} 
-                className="w-full md:w-auto px-6 md:px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold text-[10px] md:text-xs uppercase tracking-widest transition-colors print-hide flex items-center justify-center gap-2">
+                className="w-full md:w-auto px-6 md:px-8 py-3 bg-gradient-to-r from-indigo-600 to-pink-500 text-white rounded-xl font-bold text-[10px] md:text-xs uppercase tracking-widest transition-colors print-hide flex items-center justify-center gap-2">
                 <Download size={16} strokeWidth={3} /> {t.exportPdf}
               </motion.button>
             </div>
@@ -974,7 +988,7 @@ const App: React.FC = () => {
         {/* SUBJECT ANALYSIS TABLE SECTION */}
         {subjectAverages.length > 0 && (
           <section className="mb-12 sm:mb-16 md:mb-24 print-hide">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200/50 dark:border-slate-800/50 overflow-hidden">
+            <div className="glass rounded-3xl shadow-lg shadow-slate-200/40 dark:shadow-none overflow-hidden">
               <div className="p-5 sm:p-6 md:p-8 border-b border-slate-100 dark:border-slate-800/50">
                 <h4 className="text-lg sm:text-xl font-bold uppercase tracking-tight">{t.subjectAnalysisTable}</h4>
               </div>
@@ -1032,7 +1046,7 @@ const App: React.FC = () => {
               disabled={isCalculating || hasValidationErrors} 
               onClick={runCalculation}
               className={`w-full py-5 sm:py-6 md:py-8 rounded-2xl sm:rounded-3xl font-bold text-lg sm:text-xl md:text-2xl shadow-xl transition-all flex items-center justify-center gap-2 sm:gap-3 relative overflow-hidden ${
-                isCalculating || hasValidationErrors ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-2xl'
+                isCalculating || hasValidationErrors ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-pink-500 text-white hover:shadow-2xl hover:shadow-indigo-500/20'
               }`}>
               {isCalculating ? (
                 <motion.div 
@@ -1069,8 +1083,8 @@ const App: React.FC = () => {
               <div className="w-16 h-16 sm:w-20 sm:h-20 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 sm:mb-8 text-white shadow-2xl">
                 <Award size={32} strokeWidth={2} className="sm:w-10 sm:h-10" />
               </div>
-              <h2 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-3 tracking-tighter uppercase">{t.welcome}</h2>
-              <p className="text-slate-400 font-bold text-[9px] sm:text-[10px] uppercase tracking-widest mb-8 sm:mb-10 px-4 sm:px-6 leading-relaxed">{t.subtitle}</p>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-3 tracking-tighter">{t.welcome}</h2>
+              <p className="text-slate-500 text-sm sm:text-base mb-8 sm:mb-10 px-4 sm:px-6 leading-relaxed">{t.subtitle}</p>
               <div className="space-y-4 sm:space-y-6">
                 <input autoFocus type="text" value={tempName} onChange={e => setTempName(e.target.value)}
                   placeholder={t.enterName}
@@ -1078,7 +1092,7 @@ const App: React.FC = () => {
                   onKeyDown={e => e.key === 'Enter' && tempName.trim() && saveName()} />
                 <button onClick={saveName} disabled={!tempName.trim()}
                   className={`w-full py-4 sm:py-5 rounded-2xl font-bold uppercase tracking-[0.2em] shadow-lg text-sm sm:text-base transition-all ${
-                    tempName.trim() ? 'bg-indigo-600 text-white hover:-translate-y-1' : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    tempName.trim() ? 'bg-gradient-to-r from-indigo-600 to-pink-500 text-white hover:-translate-y-1 hover:shadow-indigo-500/20' : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                   }`}>
                   {t.start}
                 </button>
@@ -1115,7 +1129,7 @@ const App: React.FC = () => {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setActiveModal(null)} 
-                  className="py-5 sm:py-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-3xl font-bold uppercase tracking-[0.3em] shadow-xl text-base sm:text-lg hover:shadow-2xl transition-all">
+                  className="py-5 sm:py-6 bg-gradient-to-r from-indigo-600 to-pink-500 text-white rounded-3xl font-bold uppercase tracking-[0.3em] shadow-xl text-base sm:text-lg hover:shadow-2xl transition-all">
                   {t.back}
                 </motion.button>
               </div>
@@ -1211,7 +1225,7 @@ const App: React.FC = () => {
               </div>
 
               <div className="mt-8 sm:mt-10 pt-4 sm:pt-6 border-t border-slate-100 dark:border-slate-800 text-right">
-                <button onClick={() => setActiveModal(null)} className="w-full sm:w-auto px-8 py-3 sm:py-4 bg-indigo-600 text-white rounded-xl font-bold uppercase tracking-widest text-xs sm:text-sm hover:-translate-y-1 transition-all">
+                <button onClick={() => setActiveModal(null)} className="w-full sm:w-auto px-8 py-3 sm:py-4 bg-gradient-to-r from-indigo-600 to-pink-500 text-white rounded-xl font-bold uppercase tracking-widest text-xs sm:text-sm hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-500/20 transition-all">
                   {t.closeLabel}
                 </button>
               </div>

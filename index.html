@@ -17,8 +17,8 @@
                     screens: { 'xs': '400px' },
                     borderRadius: { '4xl': '2rem', '5xl': '3rem' },
                     colors: {
-                        indigo: { 50: '#f0f3ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#312e81' },
-                        slate: { 950: '#020617' }
+                        indigo: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#312e81' },
+                        slate: { 50: '#f8fafc', 900: '#0f172a', 950: '#020617' }
                     },
                     animation: {
                         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
@@ -34,6 +34,11 @@
             transition: background-color 0.4s ease, color 0.4s ease;
             -webkit-tap-highlight-color: transparent;
             overscroll-behavior-y: none;
+            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .dark body {
+            background-image: radial-gradient(#1e293b 1px, transparent 1px);
         }
         .tech-font { font-family: 'JetBrains Mono', monospace; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -54,7 +59,7 @@
         }
 
         .gradient-text {
-            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            background: linear-gradient(135deg, #4f46e5 0%, #ec4899 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
