@@ -532,27 +532,25 @@ const App: React.FC = () => {
           {/* PRINT VIEW: Chart */}
           <div className="mb-10 avoid-break">
             <h4 className="text-sm font-black uppercase tracking-widest mb-4 text-slate-800 border-b border-slate-300 pb-2">{t.performanceTrend}</h4>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorCombinedPrint" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorActualPrint" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} dy={10} />
-                  <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} />
-                  <ReferenceLine y={data.targetAvg} stroke="#94a3b8" strokeDasharray="3 3" />
-                  <Area type="monotone" dataKey="Combined" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorCombinedPrint)" isAnimationActive={false} />
-                  <Area type="monotone" dataKey="Actual" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorActualPrint)" isAnimationActive={false} />
-                </AreaChart>
-              </ResponsiveContainer>
+            <div className="w-full flex justify-center">
+              <AreaChart width={700} height={250} data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorCombinedPrint" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorActualPrint" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} dy={10} />
+                <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} />
+                <ReferenceLine y={data.targetAvg} stroke="#94a3b8" strokeDasharray="3 3" />
+                <Area type="monotone" dataKey="Combined" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorCombinedPrint)" isAnimationActive={false} />
+                <Area type="monotone" dataKey="Actual" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorActualPrint)" isAnimationActive={false} />
+              </AreaChart>
             </div>
           </div>
 
@@ -661,7 +659,7 @@ const App: React.FC = () => {
             <div className="w-full md:w-auto text-center md:text-left z-10">
               <span className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400">{t.targetAvg}</span>
               <div className="flex items-center justify-center md:justify-start gap-3 mt-2 sm:mt-3">
-                <input type="number" value={data.targetAvg} onChange={e => setData(d => ({ ...d, targetAvg: parseFloat(e.target.value) || 0 }))}
+                <input type="number" value={data.targetAvg === 0 ? '' : data.targetAvg} onChange={e => setData(d => ({ ...d, targetAvg: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0 }))}
                   className="w-20 sm:w-24 md:w-32 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-2xl p-3 md:p-4 text-2xl sm:text-3xl md:text-4xl font-bold text-center outline-none transition-all" />
                 <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-300">/ 100</span>
               </div>
