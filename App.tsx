@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { ComposedChart, Area, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { Download, Sun, Moon, X, Plus, TrendingUp, TrendingDown, Minus, Trophy, Target, Award, AlertCircle, BookOpen, Info, Upload, FileImage, FileSpreadsheet } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 import Papa from 'papaparse';
@@ -16,6 +16,35 @@ import {
 } from './utils';
 
 const generateId = () => Math.random().toString(36).substring(2, 11);
+
+const Candlestick = (props: any) => {
+  const { x, y, width, height, payload } = props;
+  const { open, close, high, low, isGrowing } = payload;
+  
+  if (high == null || low == null || open == null || close == null) return null;
+
+  const color = isGrowing ? '#10b981' : '#ec4899';
+  const centerX = x + width / 2;
+
+  if (high === low || height === 0) {
+    return <rect x={x} y={y - 2} width={width} height={4} fill={color} rx={2} />;
+  }
+
+  const pixelPerUnit = height / (high - low);
+  const openY = y + (high - open) * pixelPerUnit;
+  const closeY = y + (high - close) * pixelPerUnit;
+  
+  const bodyTop = Math.min(openY, closeY);
+  const bodyBottom = Math.max(openY, closeY);
+  const bodyHeight = Math.max(bodyBottom - bodyTop, 4);
+  
+  return (
+    <g>
+      <line x1={centerX} y1={y} x2={centerX} y2={y + height} stroke={color} strokeWidth={2} />
+      <rect x={x} y={bodyTop} width={width} height={bodyHeight} fill={color} rx={4} />
+    </g>
+  );
+};
 
 const INITIAL_DATA: AppData = {
   userName: '',
@@ -120,18 +149,23 @@ const App: React.FC = () => {
     let currentCount = 0;
     let emptyCountInExisting = 0;
 
+    const baseSubjectCount = data.semesters[0]?.subjects?.length || 0;
+
     data.semesters.forEach(s => {
-      s.subjects.forEach(sub => {
-        if (sub.score > 0) {
-          currentSum += sub.score;
-          currentCount++;
-        } else {
-          emptyCountInExisting++;
-        }
-      });
+      if (s.subjects.length === 0) {
+        emptyCountInExisting += baseSubjectCount;
+      } else {
+        s.subjects.forEach(sub => {
+          if (sub.score > 0) {
+            currentSum += sub.score;
+            currentCount++;
+          } else {
+            emptyCountInExisting++;
+          }
+        });
+      }
     });
 
-    const baseSubjectCount = data.semesters[0]?.subjects?.length || 0;
     if (baseSubjectCount === 0) return data.targetAvg;
 
     const existingSemestersCount = data.semesters.length;
@@ -195,14 +229,42 @@ const App: React.FC = () => {
   const activeSemester = useMemo(() => data.semesters.find(s => s.id === activeSemesterId) || null, [data.semesters, activeSemesterId]);
 
   const chartData = useMemo(() => {
-    return data.semesters.map(s => {
+    let prevClose = 0;
+    return data.semesters.map((s, index) => {
       const actualAvg = calculateSemesterAverage(s, false, neededAvg);
       const combinedAvg = calculateSemesterAverage(s, true, neededAvg);
+      const stats = getSemesterStats(s, neededAvg);
+      
+      const currentClose = combinedAvg > 0 ? parseFloat(combinedAvg.toFixed(2)) : 0;
+      
+      let high = stats.highest > 0 ? stats.highest : currentClose;
+      let low = stats.lowest > 0 ? stats.lowest : currentClose;
+      
+      // Use standard deviation for the body of the candlestick
+      const stdDev = stats.variance || 0;
+      let open = Math.max(low, currentClose - stdDev / 2);
+      let close = Math.min(high, currentClose + stdDev / 2);
+      
+      // If no variance, make a small body so it's visible
+      if (open === close) {
+        open = Math.max(low, currentClose - 0.5);
+        close = Math.min(high, currentClose + 0.5);
+      }
+      
+      const isGrowing = index === 0 ? true : currentClose >= prevClose;
+      prevClose = currentClose;
+      
       return {
         name: `SMT ${s.id}`,
         Actual: actualAvg > 0 ? parseFloat(actualAvg.toFixed(2)) : null,
         Combined: combinedAvg > 0 ? parseFloat(combinedAvg.toFixed(2)) : null,
-        Target: data.targetAvg
+        Target: data.targetAvg,
+        open: parseFloat(open.toFixed(2)),
+        close: parseFloat(close.toFixed(2)),
+        high: parseFloat(high.toFixed(2)),
+        low: parseFloat(low.toFixed(2)),
+        range: [low, high],
+        isGrowing
       };
     });
   }, [data.semesters, data.targetAvg, neededAvg]);
@@ -533,7 +595,7 @@ const App: React.FC = () => {
           <div className="mb-10 avoid-break">
             <h4 className="text-sm font-black uppercase tracking-widest mb-4 text-slate-800 border-b border-slate-300 pb-2">{t.performanceTrend}</h4>
             <div className="w-full flex justify-center">
-              <AreaChart width={700} height={250} data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <ComposedChart width={700} height={250} data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorCombinedPrint" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#ec4899" stopOpacity={0.3}/>
@@ -550,7 +612,8 @@ const App: React.FC = () => {
                 <ReferenceLine y={data.targetAvg} stroke="#94a3b8" strokeDasharray="3 3" />
                 <Area type="monotone" dataKey="Combined" stroke="#ec4899" strokeWidth={3} fillOpacity={1} fill="url(#colorCombinedPrint)" isAnimationActive={false} />
                 <Area type="monotone" dataKey="Actual" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorActualPrint)" isAnimationActive={false} />
-              </AreaChart>
+                <Bar dataKey="range" shape={<Candlestick />} barSize={20} isAnimationActive={false} />
+              </ComposedChart>
             </div>
           </div>
 
@@ -562,27 +625,27 @@ const App: React.FC = () => {
               return (
                 <div key={sem.id} className="mb-4 avoid-break">
                   <h4 className="text-sm font-black uppercase tracking-widest mb-3 text-slate-800 border-b border-slate-300 pb-2">{t.semesterLabel} {sem.id.toString().padStart(2, '0')}</h4>
-                  <table className="w-full text-xs">
+                  <table className="w-full text-xs border-collapse border border-slate-300">
                     <thead>
-                      <tr>
-                        <th className="w-8 text-center pb-2">{t.noLabel}</th>
-                        <th className="pb-2">{t.subjectName}</th>
-                        <th className="w-16 text-center pb-2">{t.actualLabel}</th>
-                        <th className="w-16 text-center pb-2">{t.requiredLabel}</th>
+                      <tr className="bg-slate-100">
+                        <th className="w-8 text-center py-2 border border-slate-300">{t.noLabel}</th>
+                        <th className="py-2 px-2 border border-slate-300">{t.subjectName}</th>
+                        <th className="w-16 text-center py-2 border border-slate-300">{t.actualLabel}</th>
+                        <th className="w-16 text-center py-2 border border-slate-300">{t.requiredLabel}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {sem.subjects.map((sub, sIdx) => (
                         <tr key={sub.id}>
-                          <td className="text-center text-slate-500 py-1.5">{sIdx + 1}</td>
-                          <td className="uppercase font-bold py-1.5">{sub.name || '-'}</td>
-                          <td className="text-center font-bold py-1.5">{sub.score || '-'}</td>
-                          <td className="text-center font-bold text-indigo-600 py-1.5">{neededAvg.toFixed(1)}</td>
+                          <td className="text-center text-slate-500 py-1.5 border border-slate-300">{sIdx + 1}</td>
+                          <td className="uppercase font-bold py-1.5 px-2 border border-slate-300">{sub.name || '-'}</td>
+                          <td className="text-center font-bold py-1.5 border border-slate-300">{sub.score || '-'}</td>
+                          <td className="text-center font-bold text-indigo-600 py-1.5 border border-slate-300">{neededAvg.toFixed(1)}</td>
                         </tr>
                       ))}
-                      <tr className="border-t-2 border-slate-800">
-                        <td colSpan={2} className="text-right uppercase text-[9px] font-black tracking-widest text-slate-500 py-2">{t.semesterSummary}</td>
-                        <td colSpan={2} className="text-center font-black text-sm py-2">{calculateSemesterAverage(sem, true, neededAvg).toFixed(2)}</td>
+                      <tr className="bg-slate-50">
+                        <td colSpan={2} className="text-right uppercase text-[9px] font-black tracking-widest text-slate-500 py-2 px-2 border border-slate-300">{t.semesterSummary}</td>
+                        <td colSpan={2} className="text-center font-black text-sm py-2 border border-slate-300">{calculateSemesterAverage(sem, true, neededAvg).toFixed(2)}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -595,15 +658,15 @@ const App: React.FC = () => {
           {subjectAverages.length > 0 && (
             <div className="mb-10 avoid-break">
               <h4 className="text-sm font-black uppercase tracking-widest mb-4 text-slate-800 border-b border-slate-300 pb-2">{t.subjectAnalysisTable}</h4>
-              <table className="w-full text-xs">
+              <table className="w-full text-xs border-collapse border border-slate-300">
                 <thead>
-                  <tr>
-                    <th className="w-10 text-center pb-2">{t.noLabel}</th>
-                    <th className="pb-2">{t.subjectName}</th>
-                    <th className="w-20 text-center pb-2">{t.overallAvg}</th>
-                    <th className="w-20 text-center pb-2">{t.highestScore}</th>
-                    <th className="w-20 text-center pb-2">{t.lowestScore}</th>
-                    <th className="w-24 text-center pb-2">{t.status}</th>
+                  <tr className="bg-slate-100">
+                    <th className="w-10 text-center py-2 border border-slate-300">{t.noLabel}</th>
+                    <th className="py-2 px-2 border border-slate-300">{t.subjectName}</th>
+                    <th className="w-20 text-center py-2 border border-slate-300">{t.overallAvg}</th>
+                    <th className="w-20 text-center py-2 border border-slate-300">{t.highestScore}</th>
+                    <th className="w-20 text-center py-2 border border-slate-300">{t.lowestScore}</th>
+                    <th className="w-24 text-center py-2 border border-slate-300">{t.status}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -611,12 +674,12 @@ const App: React.FC = () => {
                     const isHealthy = sub.avg >= data.targetAvg;
                     return (
                       <tr key={sIdx}>
-                        <td className="text-center text-slate-500 py-2">{sIdx + 1}</td>
-                        <td className="uppercase font-bold py-2">{sub.name || '-'}</td>
-                        <td className="text-center font-black py-2">{sub.avg > 0 ? sub.avg.toFixed(1) : '-'}</td>
-                        <td className="text-center font-bold text-emerald-600 py-2">{sub.highest > 0 ? sub.highest.toFixed(1) : '-'}</td>
-                        <td className="text-center font-bold text-rose-600 py-2">{sub.lowest > 0 && sub.lowest <= 100 ? sub.lowest.toFixed(1) : '-'}</td>
-                        <td className="uppercase text-center text-[9px] font-black tracking-widest py-2">{sub.avg > 0 ? (isHealthy ? t.onTrack : t.needsFocus) : '-'}</td>
+                        <td className="text-center text-slate-500 py-2 border border-slate-300">{sIdx + 1}</td>
+                        <td className="uppercase font-bold py-2 px-2 border border-slate-300">{sub.name || '-'}</td>
+                        <td className="text-center font-black py-2 border border-slate-300">{sub.avg > 0 ? sub.avg.toFixed(1) : '-'}</td>
+                        <td className="text-center font-bold text-emerald-600 py-2 border border-slate-300">{sub.highest > 0 ? sub.highest.toFixed(1) : '-'}</td>
+                        <td className="text-center font-bold text-rose-600 py-2 border border-slate-300">{sub.lowest > 0 && sub.lowest <= 100 ? sub.lowest.toFixed(1) : '-'}</td>
+                        <td className="uppercase text-center text-[9px] font-black tracking-widest py-2 border border-slate-300">{sub.avg > 0 ? (isHealthy ? t.onTrack : t.needsFocus) : '-'}</td>
                       </tr>
                     );
                   })}
@@ -717,7 +780,7 @@ const App: React.FC = () => {
             </div>
             <div className="h-56 sm:h-64 md:h-80 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorCombined" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#ec4899" stopOpacity={0.3}/>
@@ -738,7 +801,8 @@ const App: React.FC = () => {
                   <ReferenceLine y={data.targetAvg} stroke={data.theme === 'dark' ? '#334155' : '#cbd5e1'} strokeDasharray="3 3" />
                   <Area type="monotone" dataKey="Combined" stroke="#ec4899" strokeWidth={4} fillOpacity={1} fill="url(#colorCombined)" activeDot={{ r: 8 }} />
                   <Area type="monotone" dataKey="Actual" stroke="#10b981" strokeWidth={4} fillOpacity={1} fill="url(#colorActual)" />
-                </AreaChart>
+                  <Bar dataKey="range" shape={<Candlestick />} barSize={20} />
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           </motion.div>
@@ -933,9 +997,9 @@ const App: React.FC = () => {
               </motion.button>
             </div>
             <div className="overflow-x-auto no-scrollbar">
-              <table className="w-full text-left border-collapse min-w-[800px]">
+              <table className="w-full text-left border-collapse min-w-[800px] border-y border-slate-200 dark:border-slate-700">
                 <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800 uppercase text-[9px] md:text-[10px]">
+                  <tr className="bg-slate-50 dark:bg-slate-900/50 border-b-2 border-slate-200 dark:border-slate-700 uppercase text-[9px] md:text-[10px]">
                     <th className="px-4 sm:px-6 py-4 font-bold tracking-widest text-slate-400">{t.semesterLabel}</th>
                     <th className="px-4 sm:px-6 py-4 font-bold tracking-widest text-slate-400">{t.actualAvgLabel}</th>
                     <th className="px-4 sm:px-6 py-4 font-bold tracking-widest text-slate-400">{t.combinedAvgLabel}</th>
@@ -944,7 +1008,7 @@ const App: React.FC = () => {
                     <th className="px-4 sm:px-6 py-4 font-bold tracking-widest text-slate-400">{t.progressLabel}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                   {data.semesters.map(s => {
                     const actualAvg = calculateSemesterAverage(s, false, neededAvg);
                     const combinedAvg = calculateSemesterAverage(s, true, neededAvg);
@@ -993,9 +1057,9 @@ const App: React.FC = () => {
                 <h4 className="text-lg sm:text-xl font-bold uppercase tracking-tight">{t.subjectAnalysisTable}</h4>
               </div>
               <div className="overflow-x-auto no-scrollbar">
-                <table className="w-full text-left border-collapse min-w-[700px]">
+                <table className="w-full text-left border-collapse min-w-[700px] border-y border-slate-200 dark:border-slate-700">
                   <thead>
-                    <tr className="bg-slate-50 dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800 uppercase text-[9px] md:text-[10px]">
+                    <tr className="bg-slate-50 dark:bg-slate-900/50 border-b-2 border-slate-200 dark:border-slate-700 uppercase text-[9px] md:text-[10px]">
                       <th className="px-4 sm:px-6 py-4 font-bold tracking-widest text-slate-400">{t.subjectName}</th>
                       <th className="px-4 sm:px-6 py-4 font-bold tracking-widest text-slate-400">{t.overallAvg}</th>
                       <th className="px-4 sm:px-6 py-4 font-bold tracking-widest text-slate-400">{t.highestScore}</th>
@@ -1003,7 +1067,7 @@ const App: React.FC = () => {
                       <th className="px-4 sm:px-6 py-4 font-bold tracking-widest text-slate-400">{t.status}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                     {subjectAverages.map((sub, idx) => {
                       const isHealthy = sub.avg >= data.targetAvg;
                       return (
