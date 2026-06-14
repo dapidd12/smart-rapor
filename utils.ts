@@ -1,5 +1,5 @@
 
-import { AppData, Semester, Subject } from './types';
+import { AppData, Semester, Subject, AchievementRubric, GraduationScheme } from './types';
 
 export const calculateSemesterAverage = (semester: Semester, usePredictions = false, neededAvg = 0): number => {
   if (!semester || semester.subjects.length === 0) return 0;
@@ -50,6 +50,94 @@ export const loadFromStorage = (): AppData | null => {
   }
 };
 
+export const defaultAchievementRubric: AchievementRubric[] = [
+  { level: 'Internasional', rank: 'Juara 1', score: 100 },
+  { level: 'Internasional', rank: 'Juara 2', score: 95 },
+  { level: 'Internasional', rank: 'Juara 3', score: 90 },
+  { level: 'Internasional', rank: 'Peserta', score: 85 },
+  { level: 'Nasional', rank: 'Juara 1', score: 90 },
+  { level: 'Nasional', rank: 'Juara 2', score: 85 },
+  { level: 'Nasional', rank: 'Juara 3', score: 80 },
+  { level: 'Nasional', rank: 'Peserta', score: 75 },
+  { level: 'Provinsi', rank: 'Juara 1', score: 80 },
+  { level: 'Provinsi', rank: 'Juara 2', score: 75 },
+  { level: 'Provinsi', rank: 'Juara 3', score: 70 },
+  { level: 'Provinsi', rank: 'Peserta', score: 65 },
+  { level: 'Kab/Kota', rank: 'Juara 1', score: 70 },
+  { level: 'Kab/Kota', rank: 'Juara 2', score: 65 },
+  { level: 'Kab/Kota', rank: 'Juara 3', score: 60 },
+  { level: 'Kab/Kota', rank: 'Peserta', score: 55 },
+  { level: 'Sekolah', rank: 'Juara 1', score: 60 },
+  { level: 'Sekolah', rank: 'Juara 2', score: 55 },
+  { level: 'Sekolah', rank: 'Juara 3', score: 50 },
+  { level: 'Sekolah', rank: 'Peserta', score: 45 },
+];
+
+export const defaultGraduationSchemes: GraduationScheme[] = [
+  {
+    id: 'snbp-2026',
+    name: 'SNBP 2026 — Default Nasional',
+    components: [
+      { id: 'c1', type: 'rapor', label: 'Nilai Rapor', enabled: true, weight: 50, aggregation: 'average', items: [] },
+      { id: 'c2', type: 'tka', label: 'Tes Kemampuan Akademik (TKA)', enabled: true, weight: 30, aggregation: 'average', items: [] },
+      { id: 'c3', type: 'supporting', label: 'Mapel Pendukung Prodi', enabled: true, weight: 10, aggregation: 'average', items: [] },
+      { id: 'c4', type: 'achievement', label: 'Prestasi / Sertifikat', enabled: true, weight: 10, aggregation: 'highest', items: [] },
+      { id: 'c5', type: 'tpa', label: 'Tes Potensi Akademik (TPA)', enabled: false, weight: 0, aggregation: 'manual', manualScore: 0, items: [] },
+    ]
+  },
+  {
+    id: 'spmb-jatim',
+    name: 'SPMB Jatim SMA — Prestasi Akademik',
+    components: [
+      { id: 'c1', type: 'rapor', label: 'Nilai Rapor', enabled: true, weight: 60, aggregation: 'average', items: [] },
+      { id: 'c2', type: 'tka', label: 'Tes Kemampuan Akademik (TKA)', enabled: true, weight: 40, aggregation: 'average', items: [] },
+      { id: 'c3', type: 'supporting', label: 'Mapel Pendukung Prodi', enabled: false, weight: 0, aggregation: 'average', items: [] },
+      { id: 'c4', type: 'achievement', label: 'Prestasi / Sertifikat', enabled: false, weight: 0, aggregation: 'highest', items: [] },
+      { id: 'c5', type: 'tpa', label: 'Tes Potensi Akademik (TPA)', enabled: false, weight: 0, aggregation: 'manual', manualScore: 0, items: [] },
+    ]
+  },
+  {
+    id: 'custom',
+    name: 'Custom / Mandiri',
+    components: [
+      { id: 'c1', type: 'rapor', label: 'Nilai Rapor', enabled: true, weight: 0, aggregation: 'average', items: [] },
+      { id: 'c2', type: 'tka', label: 'Tes Kemampuan Akademik (TKA)', enabled: true, weight: 0, aggregation: 'average', items: [] },
+      { id: 'c3', type: 'supporting', label: 'Mapel Pendukung Prodi', enabled: true, weight: 0, aggregation: 'average', items: [] },
+      { id: 'c4', type: 'achievement', label: 'Prestasi / Sertifikat', enabled: true, weight: 0, aggregation: 'highest', items: [] },
+      { id: 'c5', type: 'tpa', label: 'Tes Potensi Akademik (TPA)', enabled: true, weight: 0, aggregation: 'manual', manualScore: 0, items: [] },
+    ]
+  }
+];
+
+export const calculateFinalScore = (scheme: GraduationScheme, overallRaporAvg: number): {
+  total: number;
+  breakdown: { id: string; label: string; score: number; weight: number; contribution: number }[];
+  isWeightValid: boolean;
+} => {
+  const enabled = scheme.components.filter(c => c.enabled);
+  const totalWeight = enabled.reduce((a, c) => a + c.weight, 0);
+
+  const breakdown = enabled.map(c => {
+    let score = 0;
+    if (c.type === 'rapor') {
+      score = overallRaporAvg;
+    } else if (c.aggregation === 'manual') {
+      score = c.manualScore ?? 0;
+    } else if (c.aggregation === 'highest') {
+      score = c.items.length > 0 ? Math.max(...c.items.map(i => i.score)) : 0;
+    } else if (c.aggregation === 'sum_capped') {
+      score = Math.min(100, c.items.reduce((a, i) => a + i.score, 0));
+    } else {
+      score = c.items.length > 0 ? c.items.reduce((a, i) => a + i.score, 0) / c.items.length : 0;
+    }
+
+    return { id: c.id, label: c.label, score, weight: c.weight, contribution: (score * c.weight) / 100 };
+  });
+
+  const total = breakdown.reduce((a, b) => a + b.contribution, 0);
+  return { total, breakdown, isWeightValid: Math.abs(totalWeight - 100) < 0.01 };
+};
+
 export const translations: Record<'id' | 'en', any> = {
   id: {
     welcome: "Selamat Datang",
@@ -88,6 +176,34 @@ export const translations: Record<'id' | 'en', any> = {
     errorNameRequired: "Nama pelajaran tidak boleh kosong",
     errorScoreRange: "Nilai harus antara 0 - 100",
     errorScoreEmpty: "Nilai tidak boleh kosong",
+    graduationScheme: "Skema Kelulusan",
+    finalScoreEstimate: "Skor Akhir Estimasi",
+    selectPreset: "Pilih Skema Awal",
+    weightLabel: "Bobot (%)",
+    weightWarning: "Total bobot belum 100%",
+    autoBalance: "Samakan ke 100%",
+    tkaSubjectCount: "Jumlah Mapel TKA",
+    addTkaSubject: "Tambah Mapel TKA",
+    tpaScore: "Skor TPA",
+    achievementList: "Daftar Sertifikat & Prestasi",
+    addAchievement: "Tambah Prestasi",
+    achievementLevel: "Tingkat",
+    achievementRank: "Peringkat",
+    supportingSubjects: "Mapel Pendukung Prodi",
+    saveAsMyScheme: "Simpan sebagai Skema Saya",
+    schemeDisclaimer: "Bobot resmi ditentukan masing-masing PTN/Dinas Pendidikan. Sesuaikan dengan pengumuman daerah/PTN tujuanmu.",
+    raporPlan: "Rencana Rapor",
+    graduationPlan: "Skema Kelulusan",
+    raporScore: "Nilai Rapor",
+    overallAvg: "Rata-rata Total",
+    contribution: "Kontribusi",
+    achievementRubric: "Rubrik Prestasi",
+    score: "Skor",
+    cancel: "Batal",
+    save: "Simpan",
+    level: "Tingkat",
+    rank: "Peringkat",
+    actions: "Aksi",
     emptyState: "Belum ada pelajaran di semester ini.",
     emptyStateDesc: "Tambahkan pelajaran satu per satu atau gunakan daftar pelajaran umum agar lebih cepat.",
     useTemplate: "Gunakan Daftar Umum",
@@ -181,6 +297,34 @@ export const translations: Record<'id' | 'en', any> = {
     errorNameRequired: "Subject name cannot be empty",
     errorScoreRange: "Score must be between 0 - 100",
     errorScoreEmpty: "Score cannot be empty",
+    graduationScheme: "Graduation Scheme",
+    finalScoreEstimate: "Final Score Estimate",
+    selectPreset: "Select Initial Scheme",
+    weightLabel: "Weight (%)",
+    weightWarning: "Total weight is not 100%",
+    autoBalance: "Balance to 100%",
+    tkaSubjectCount: "TKA Subject Count",
+    addTkaSubject: "Add TKA Subject",
+    tpaScore: "TPA Score",
+    achievementList: "Certificates & Achievements",
+    addAchievement: "Add Achievement",
+    achievementLevel: "Level",
+    achievementRank: "Rank",
+    supportingSubjects: "Supporting Subjects",
+    saveAsMyScheme: "Save as My Scheme",
+    schemeDisclaimer: "Official weights are determined by each university. Adjust according to your target university's announcement.",
+    raporPlan: "Rapor Plan",
+    graduationPlan: "Graduation Scheme",
+    raporScore: "Rapor Score",
+    overallAvg: "Overall Average",
+    contribution: "Contribution",
+    achievementRubric: "Achievement Rubric",
+    score: "Score",
+    cancel: "Cancel",
+    save: "Save",
+    level: "Level",
+    rank: "Rank",
+    actions: "Actions",
     emptyState: "No subjects added yet.",
     emptyStateDesc: "Add subjects one by one or use the common list.",
     useTemplate: "Use Common List",

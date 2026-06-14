@@ -12,7 +12,10 @@ import {
   getSemesterStats,
   saveToStorage, 
   loadFromStorage,
-  translations 
+  translations,
+  defaultGraduationSchemes,
+  defaultAchievementRubric,
+  calculateFinalScore
 } from './utils';
 
 const generateId = () => Math.random().toString(36).substring(2, 11);
@@ -52,7 +55,10 @@ const INITIAL_DATA: AppData = {
   targetAvg: 85,
   totalSemestersTarget: 6,
   theme: 'light',
-  language: 'id'
+  language: 'id',
+  graduationScheme: defaultGraduationSchemes[0],
+  achievementRubric: defaultAchievementRubric,
+  schemeDataVersion: 1
 };
 
 const Modal = ({ children, onClose, maxWidth = 'max-w-xl' }: { children?: React.ReactNode, onClose: () => void, maxWidth?: string }) => (
@@ -75,7 +81,8 @@ const App: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
-  const [activeModal, setActiveModal] = useState<'final' | 'about' | 'import' | null>(null);
+  const [activeModal, setActiveModal] = useState<'final' | 'about' | 'import' | 'rubric' | null>(null);
+  const [activeView, setActiveView] = useState<'rapor' | 'scheme'>('rapor');
   const [tempName, setTempName] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
@@ -86,6 +93,11 @@ const App: React.FC = () => {
   useEffect(() => {
     const saved = loadFromStorage();
     if (saved) {
+      if (!saved.graduationScheme) {
+        saved.graduationScheme = defaultGraduationSchemes[0];
+        saved.achievementRubric = defaultAchievementRubric;
+        saved.schemeDataVersion = 1;
+      }
       setData(saved);
       setTempName(saved.userName || '');
       if (!saved.userName) setShowWelcome(true);
@@ -526,8 +538,8 @@ const App: React.FC = () => {
       <nav className="sticky top-0 z-50 glass dark:glass border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 md:px-12 py-3 md:py-5 print-hide">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3 md:gap-4">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-600 rounded-xl md:rounded-2xl flex items-center justify-center text-white shadow-lg">
-              <Award size={24} strokeWidth={2.5} />
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden p-1.5 md:p-2">
+              <img src="/icon.svg" alt="Logo" className="w-full h-full object-contain" />
             </div>
             <div>
               <h1 className="text-lg md:text-xl font-black tracking-tight leading-none uppercase">Smart<span className="text-indigo-600">Rapor</span></h1>
@@ -559,6 +571,33 @@ const App: React.FC = () => {
 
       <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 md:px-8 lg:px-12 py-8 md:py-12 lg:py-16">
         
+        {/* NAV TABS */}
+        <div className="flex justify-center mb-8 sm:mb-12 print-hide">
+          <div className="glass p-1.5 rounded-full inline-flex relative shadow-md">
+            <button
+              onClick={() => setActiveView('rapor')}
+              className={`relative z-10 px-4 sm:px-8 py-2.5 sm:py-3 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all duration-300 ${activeView === 'rapor' ? 'text-white' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+            >
+              <span className="whitespace-nowrap">{t.raporPlan}</span>
+            </button>
+            <button
+              onClick={() => setActiveView('scheme')}
+              className={`relative z-10 px-4 sm:px-8 py-2.5 sm:py-3 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all duration-300 ${activeView === 'scheme' ? 'text-white' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+            >
+              <span className="whitespace-nowrap">{t.graduationPlan}</span>
+            </button>
+            {/* Animated Tab Indicator */}
+            <motion.div
+              layoutId="activeTabIndicator"
+              className="absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-gradient-to-r from-indigo-600 to-pink-500 rounded-full z-0 pointer-events-none"
+              animate={{
+                left: activeView === 'rapor' ? '6px' : 'calc(50% + 3px)',
+              }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            />
+          </div>
+        </div>
+
         {/* PRINT VIEW: Header & Summary */}
         <div className="hidden print-block print-container">
           <div className="border-b-2 border-slate-800 pb-6 mb-8 flex justify-between items-end">
@@ -700,6 +739,51 @@ const App: React.FC = () => {
               </p>
             </div>
           </div>
+
+          {/* PRINT VIEW: Graduation Scheme Summary */}
+          <div className="mt-12 pt-8 border-t-2 border-slate-800 avoid-break">
+            <h4 className="text-sm font-black uppercase tracking-widest mb-4 text-slate-800">{t.graduationScheme} - {data.graduationScheme.name}</h4>
+            
+            {(() => {
+              const { total, breakdown, isWeightValid } = calculateFinalScore(data.graduationScheme, overallAvg);
+              return (
+                <div>
+                  <table className="w-full text-xs border-collapse border border-slate-300 mb-6">
+                    <thead>
+                      <tr className="bg-slate-100 uppercase text-[9px] font-black tracking-widest text-slate-600">
+                        <th className="text-left py-2 px-3 border border-slate-300">Komponen</th>
+                        <th className="w-20 text-center py-2 border border-slate-300">{t.weightLabel}</th>
+                        <th className="w-24 text-center py-2 border border-slate-300">{t.score}</th>
+                        <th className="w-24 text-center py-2 border border-slate-300">{t.contribution}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {breakdown.map(item => (
+                        <tr key={item.id}>
+                          <td className="py-2 px-3 border border-slate-300 font-bold uppercase">{item.label}</td>
+                          <td className="text-center py-2 border border-slate-300">{item.weight}%</td>
+                          <td className="text-center py-2 border border-slate-300">{item.score.toFixed(2)}</td>
+                          <td className="text-center font-bold text-indigo-600 py-2 border border-slate-300">{item.contribution.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  <div className="flex justify-end pr-4">
+                    <div className="text-right">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">{t.finalScoreEstimate}</p>
+                      <p className="text-3xl font-black text-indigo-600 leading-none">
+                        {total.toFixed(2)}
+                      </p>
+                      {!isWeightValid && (
+                        <p className="text-[9px] font-bold text-rose-500 uppercase mt-1">*{t.weightWarning}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
         </div>
 
         {/* WEB VIEW HERO */}
@@ -712,14 +796,22 @@ const App: React.FC = () => {
           <p className="relative text-slate-500 dark:text-slate-400 text-sm sm:text-base md:text-lg font-medium max-w-2xl z-10">{t.heroDesc}</p>
         </header>
 
-        {/* WEB VIEW DASHBOARD */}
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-10 sm:mb-12 md:mb-16 print-hide">
+        <AnimatePresence mode="wait">
+        {activeView === 'rapor' ? (
+          <motion.div
+            key="rapor"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            {/* WEB VIEW DASHBOARD */}
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-10 sm:mb-12 md:mb-16 print-hide">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-            className="lg:col-span-2 glass rounded-3xl p-6 sm:p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 md:gap-12 shadow-lg shadow-slate-200/40 dark:shadow-none relative overflow-hidden group">
+            className="lg:col-span-2 glass rounded-3xl p-6 sm:p-8 md:p-10 flex flex-col items-center sm:items-start md:flex-row justify-between gap-6 sm:gap-8 md:gap-12 shadow-lg shadow-slate-200/40 dark:shadow-none relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-8 opacity-5 text-slate-900 dark:text-white transition-transform duration-700 group-hover:scale-110 group-hover:rotate-12">
               <TrendingUp size={120} strokeWidth={1} />
             </div>
-            <div className="w-full md:w-auto text-center md:text-left z-10">
+            <div className="w-full md:w-auto text-center md:text-left z-10 flex flex-col h-full justify-center">
               <span className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400">{t.targetAvg}</span>
               <div className="flex items-center justify-center md:justify-start gap-3 mt-2 sm:mt-3">
                 <input type="number" value={data.targetAvg === 0 ? '' : data.targetAvg} onChange={e => setData(d => ({ ...d, targetAvg: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0 }))}
@@ -740,6 +832,23 @@ const App: React.FC = () => {
               </div>
             </div>
             <ProgressRing value={overallAvg} target={data.targetAvg} />
+          </motion.div>
+
+          {/* FINAL ESTIMATE MINI CARD */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+            className="glass border border-indigo-100 dark:border-indigo-900/40 rounded-3xl p-6 flex flex-col justify-center items-center text-center shadow-lg relative overflow-hidden group cursor-pointer"
+            onClick={() => setActiveView('scheme')}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <div className="absolute top-0 right-0 p-4 opacity-5 text-indigo-600 transition-transform duration-700 group-hover:scale-110">
+              <Award size={100} strokeWidth={1} />
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-500 dark:text-indigo-400 mb-2 relative z-10">{t.finalScoreEstimate}</span>
+            <div className="text-5xl font-black text-slate-800 dark:text-white tracking-tighter mb-1 relative z-10">
+              {calculateFinalScore(data.graduationScheme, overallAvg).total.toFixed(1)}
+            </div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest relative z-10 mt-3">{t.graduationScheme}:<br/><span className="text-indigo-500">{data.graduationScheme.name}</span></span>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
@@ -869,15 +978,15 @@ const App: React.FC = () => {
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={handleUseTemplate} 
-                          className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 glass text-indigo-600 dark:text-indigo-400 rounded-2xl font-bold shadow-sm hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors flex items-center justify-center gap-2 uppercase tracking-widest text-[10px] sm:text-xs">
-                          <Plus size={16} className="sm:w-[18px] sm:h-[18px]" /> {t.useTemplate}
+                          className="w-full sm:w-auto px-4 sm:px-6 py-3 sm:py-4 glass text-indigo-600 dark:text-indigo-400 rounded-2xl font-bold shadow-sm hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors flex items-center justify-center gap-2 uppercase tracking-wider text-[10px] sm:text-xs text-center flex-wrap leading-snug">
+                          <Plus size={16} className="sm:w-[18px] sm:h-[18px] flex-shrink-0" /> <span className="flex-1 min-w-0 break-words">{t.useTemplate}</span>
                         </motion.button>
                         <motion.button 
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={handleAddSubject} 
-                          className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-indigo-600 to-pink-500 text-white rounded-2xl font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-[10px] sm:text-xs">
-                          <Plus size={16} className="sm:w-[18px] sm:h-[18px]" /> {t.addSubject}
+                          className="w-full sm:w-auto px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-indigo-600 to-pink-500 text-white rounded-2xl font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-[10px] sm:text-xs text-center flex-wrap leading-snug">
+                          <Plus size={16} className="sm:w-[18px] sm:h-[18px] flex-shrink-0" /> <span className="flex-1 min-w-0 break-words">{t.addSubject}</span>
                         </motion.button>
                       </div>
                     )}
@@ -1109,7 +1218,7 @@ const App: React.FC = () => {
               whileTap={isCalculating || hasValidationErrors ? {} : { scale: 0.98 }}
               disabled={isCalculating || hasValidationErrors} 
               onClick={runCalculation}
-              className={`w-full py-5 sm:py-6 md:py-8 rounded-2xl sm:rounded-3xl font-bold text-lg sm:text-xl md:text-2xl shadow-xl transition-all flex items-center justify-center gap-2 sm:gap-3 relative overflow-hidden ${
+              className={`w-full py-5 sm:py-6 md:py-8 rounded-2xl sm:rounded-3xl font-bold text-base sm:text-xl md:text-2xl shadow-xl transition-all flex items-center justify-center gap-2 sm:gap-3 relative overflow-hidden tracking-wide text-center leading-tight sm:leading-snug px-2 ${
                 isCalculating || hasValidationErrors ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-pink-500 text-white hover:shadow-2xl hover:shadow-indigo-500/20'
               }`}>
               {isCalculating ? (
@@ -1137,6 +1246,519 @@ const App: React.FC = () => {
             </p>
           </div>
         </section>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="scheme"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            {/* GRADUATION SCHEME SECTION */}
+            <section className="mb-10 sm:mb-12 md:mb-16 print-hide">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-bold tracking-tight uppercase">{t.graduationPlan}</h3>
+                  <p className="text-sm font-medium text-slate-500 mt-1">{t.finalScoreEstimate}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-slate-400">{t.selectPreset}:</span>
+                  <select
+                    className="glass border-2 border-slate-200/50 dark:border-slate-700/50 focus:border-indigo-500 rounded-xl px-3 py-2 text-sm font-bold bg-transparent outline-none cursor-pointer"
+                    value={data.graduationScheme.id}
+                    onChange={(e) => {
+                      const scheme = defaultGraduationSchemes.find(s => s.id === e.target.value);
+                      if (scheme) {
+                        setData(d => ({ ...d, graduationScheme: scheme }));
+                      }
+                    }}
+                  >
+                    <option value="custom">Custom / Mandiri</option>
+                    {defaultGraduationSchemes.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {(() => {
+                const schemeResults = calculateFinalScore(data.graduationScheme, overallAvg);
+                return (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* SUMMARY CARD */}
+                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                      className="glass rounded-3xl p-8 flex flex-col items-center justify-center text-center relative overflow-hidden border-t-[6px] border-indigo-600 shadow-xl shadow-slate-200/50 dark:shadow-none">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-3xl rounded-full pointer-events-none"></div>
+                      <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">{t.finalScoreEstimate}</p>
+                      <div className="text-6xl sm:text-7xl font-black text-indigo-600 tracking-tighter mb-2">
+                        {schemeResults.total.toFixed(2)}
+                      </div>
+                      <p className="text-sm font-bold text-slate-400">/ 100</p>
+                      
+                      {!schemeResults.isWeightValid && (
+                        <div className="mt-6 w-full p-4 bg-rose-50 dark:bg-rose-900/20 rounded-2xl border border-rose-200 dark:border-rose-800/50 flex flex-col items-center gap-2">
+                          <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
+                            <AlertCircle size={16} />
+                            <span className="text-xs font-bold uppercase">{t.weightWarning}</span>
+                          </div>
+                          <button
+                            onClick={() => {
+                              // Simple auto-balance: set to custom, and distribute remaining weight or scale
+                              const currentTotal = data.graduationScheme.components.filter(c => c.enabled).reduce((sum, c) => sum + c.weight, 0);
+                              if (currentTotal === 0) return; // avoid division by zero
+                              
+                              setData(d => {
+                                const newScheme = { ...d.graduationScheme, id: 'custom', name: 'Custom / Mandiri' };
+                                let remaining = 100;
+                                const enabledComps = newScheme.components.filter(c => c.enabled);
+                                
+                                newScheme.components = newScheme.components.map(c => {
+                                  if (!c.enabled) return c;
+                                  const proportional = (c.weight / currentTotal) * 100;
+                                  return { ...c, weight: parseFloat(proportional.toFixed(1)) };
+                                });
+                                return { ...d, graduationScheme: newScheme };
+                              });
+                            }}
+                            className="px-2 sm:px-4 py-2 bg-rose-600 text-white rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider hover:bg-rose-700 transition flex-shrink-0 flex text-center"
+                          >
+                            {t.autoBalance}
+                          </button>
+                        </div>
+                      )}
+                    </motion.div>
+
+                    {/* COMPONENTS LIST */}
+                    <div className="lg:col-span-2 flex flex-col gap-4">
+                      {data.graduationScheme.components.map((comp, idx) => (
+                        <div key={comp.id} className={`glass rounded-2xl p-5 sm:p-6 transition-all ${comp.enabled ? 'border-l-4 border-indigo-500' : 'opacity-60 grayscale'}`}>
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => {
+                                  setData(d => {
+                                    const newScheme = { ...d.graduationScheme, id: 'custom' };
+                                    newScheme.components = newScheme.components.map(c => 
+                                      c.id === comp.id ? { ...c, enabled: !c.enabled } : c
+                                    );
+                                    return { ...d, graduationScheme: newScheme };
+                                  });
+                                }}
+                                className={`w-10 h-6 rounded-full transition-colors relative ${comp.enabled ? 'bg-indigo-500' : 'bg-slate-300 dark:bg-slate-700'}`}
+                              >
+                                <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${comp.enabled ? 'left-5' : 'left-1'}`} />
+                              </button>
+                              <span className="font-bold uppercase tracking-wide text-sm">{comp.label}</span>
+                            </div>
+                            
+                            {comp.enabled && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">{t.weightLabel}</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  value={comp.weight}
+                                  onChange={(e) => {
+                                    setData(d => {
+                                      const newScheme = { ...d.graduationScheme, id: 'custom' };
+                                      newScheme.components = newScheme.components.map(c => 
+                                        c.id === comp.id ? { ...c, weight: parseFloat(e.target.value) || 0 } : c
+                                      );
+                                      return { ...d, graduationScheme: newScheme };
+                                    });
+                                  }}
+                                  className="w-16 glass px-2 py-1 text-center font-bold text-indigo-600 rounded-lg outline-none focus:border-indigo-500 border-2 border-transparent"
+                                />
+                                <span className="text-xs font-bold text-slate-400">%</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {comp.enabled && (
+                            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                              {comp.type === 'rapor' && (
+                                <div className="flex justify-between items-center bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-xl border border-indigo-100 dark:border-indigo-800/50">
+                                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">{t.overallAvg}</span>
+                                  <span className="text-lg font-black text-indigo-600 dark:text-indigo-400">{overallAvg.toFixed(2)}</span>
+                                </div>
+                              )}
+                              
+                              {comp.type === 'tpa' && (
+                                <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                                  <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t.tpaScore}</span>
+                                  <input 
+                                    type="number" 
+                                    min="0" max="100"
+                                    value={comp.manualScore || ''}
+                                    onChange={(e) => {
+                                      setData(d => {
+                                        const newScheme = { ...d.graduationScheme };
+                                        newScheme.components = newScheme.components.map(c => 
+                                          c.id === comp.id ? { ...c, manualScore: parseFloat(e.target.value) || 0 } : c
+                                        );
+                                        return { ...d, graduationScheme: newScheme };
+                                      });
+                                    }}
+                                    className="w-24 text-center font-black text-lg bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 rounded-lg p-1 outline-none focus:border-indigo-500"
+                                    placeholder="0 - 100"
+                                  />
+                                </div>
+                              )}
+
+                              {comp.type === 'tka' && (
+                                <div>
+                                  {comp.items.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center p-8 text-center bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                                      <BookOpen size={32} className="text-indigo-400 mb-3 opacity-50" />
+                                      <p className="text-xs font-bold text-slate-500 mb-4 tracking-wide uppercase">Belum ada mapel TKA</p>
+                                      <button
+                                        onClick={() => {
+                                          setData(d => {
+                                            const newScheme = { ...d.graduationScheme };
+                                            newScheme.components = newScheme.components.map(c => {
+                                              if (c.id === comp.id) return { ...c, items: [{ id: generateId(), name: '', score: 0 }] };
+                                              return c;
+                                            });
+                                            return { ...d, graduationScheme: newScheme };
+                                          });
+                                        }}
+                                        className="py-2 px-6 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-white bg-indigo-600 rounded-full hover:bg-indigo-700 transition shadow-md shadow-indigo-600/20"
+                                      >
+                                        <Plus size={14} /> {t.addTkaSubject}
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      {comp.items.map((item, itemIdx) => (
+                                        <div key={item.id} className="flex gap-2 mb-2 items-center">
+                                          <input
+                                            type="text"
+                                            placeholder={t.subjectPlaceholder}
+                                            value={item.name}
+                                            onChange={(e) => {
+                                              setData(d => {
+                                                const newScheme = { ...d.graduationScheme };
+                                                newScheme.components = newScheme.components.map(c => {
+                                                  if (c.id === comp.id) {
+                                                    const newItems = [...c.items];
+                                                    newItems[itemIdx] = { ...newItems[itemIdx], name: e.target.value };
+                                                    return { ...c, items: newItems };
+                                                  }
+                                                  return c;
+                                                });
+                                                return { ...d, graduationScheme: newScheme };
+                                              });
+                                            }}
+                                            className="flex-grow glass px-3 py-2 rounded-xl text-sm font-bold outline-none border-2 border-transparent focus:border-indigo-500"
+                                          />
+                                          <input
+                                            type="number"
+                                            min="0" max="100"
+                                            placeholder="0"
+                                            value={item.score || ''}
+                                            onChange={(e) => {
+                                              setData(d => {
+                                                const newScheme = { ...d.graduationScheme };
+                                                newScheme.components = newScheme.components.map(c => {
+                                                  if (c.id === comp.id) {
+                                                    const newItems = [...c.items];
+                                                    newItems[itemIdx] = { ...newItems[itemIdx], score: parseFloat(e.target.value) || 0 };
+                                                    return { ...c, items: newItems };
+                                                  }
+                                                  return c;
+                                                });
+                                                return { ...d, graduationScheme: newScheme };
+                                              });
+                                            }}
+                                            className="w-20 glass px-3 py-2 rounded-xl text-center font-bold outline-none border-2 border-transparent focus:border-indigo-500"
+                                          />
+                                          <button 
+                                            onClick={() => {
+                                              setData(d => {
+                                                const newScheme = { ...d.graduationScheme };
+                                                newScheme.components = newScheme.components.map(c => {
+                                                  if (c.id === comp.id) return { ...c, items: c.items.filter((_, i) => i !== itemIdx) };
+                                                  return c;
+                                                });
+                                                return { ...d, graduationScheme: newScheme };
+                                              });
+                                            }}
+                                            className="w-8 h-8 flex items-center justify-center text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition"
+                                          >
+                                            <X size={16} />
+                                          </button>
+                                        </div>
+                                      ))}
+                                      <button
+                                        onClick={() => {
+                                          setData(d => {
+                                            const newScheme = { ...d.graduationScheme };
+                                            newScheme.components = newScheme.components.map(c => {
+                                              if (c.id === comp.id) return { ...c, items: [...c.items, { id: generateId(), name: '', score: 0 }] };
+                                              return c;
+                                            });
+                                            return { ...d, graduationScheme: newScheme };
+                                          });
+                                        }}
+                                        className="w-full mt-2 py-2 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors border border-dashed border-indigo-200 dark:border-indigo-800"
+                                      >
+                                        <Plus size={14} /> {t.addTkaSubject}
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+
+                              {comp.type === 'supporting' && (
+                                <div className="text-sm font-medium text-slate-500">
+                                  <p className="mb-3">{t.supportingSubjects}:</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {data.semesters[0]?.subjects.map(sub => {
+                                      const isSelected = comp.items.some(i => i.name === sub.name);
+                                      return (
+                                        <button
+                                          key={sub.id}
+                                          onClick={() => {
+                                            setData(d => {
+                                              const newScheme = { ...d.graduationScheme };
+                                              newScheme.components = newScheme.components.map(c => {
+                                                if (c.id === comp.id) {
+                                                  if (isSelected) {
+                                                    return { ...c, items: c.items.filter(i => i.name !== sub.name) };
+                                                  } else {
+                                                    // Calculate average for this subject across all semesters
+                                                    let sum = 0;
+                                                    let count = 0;
+                                                    d.semesters.forEach(s => {
+                                                      const sSub = s.subjects.find(sb => sb.name.toLowerCase() === sub.name.toLowerCase());
+                                                      if (sSub && sSub.score > 0) {
+                                                        sum += sSub.score;
+                                                        count++;
+                                                      }
+                                                    });
+                                                    const subjectAvg = count > 0 ? sum / count : 0;
+                                                    return { ...c, items: [...c.items, { id: generateId(), name: sub.name, score: subjectAvg }] };
+                                                  }
+                                                }
+                                                return c;
+                                              });
+                                              return { ...d, graduationScheme: newScheme };
+                                            });
+                                          }}
+                                          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                                            isSelected 
+                                              ? 'bg-indigo-600 text-white' 
+                                              : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                          }`}
+                                        >
+                                          {sub.name}
+                                        </button>
+                                      );
+                                    })}
+                                    {(!data.semesters[0] || data.semesters[0].subjects.length === 0) && (
+                                      <span className="text-xs">{t.emptyState}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {comp.type === 'achievement' && (
+                                <div>
+                                  <div className="flex justify-end mb-3">
+                                    <button
+                                      onClick={() => setActiveModal('rubric')}
+                                      className="py-1 px-3 flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                                    >
+                                      <Award size={12} /> {t.achievementRubric}
+                                    </button>
+                                  </div>
+                                  {comp.items.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center p-8 text-center bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                                      <Award size={32} className="text-amber-400 mb-3 opacity-50" />
+                                      <p className="text-xs font-bold text-slate-500 mb-4 tracking-wide uppercase">Belum ada data prestasi</p>
+                                      <button
+                                        onClick={() => {
+                                          setData(d => {
+                                            const newScheme = { ...d.graduationScheme };
+                                            newScheme.components = newScheme.components.map(c => {
+                                              if (c.id === comp.id) return { ...c, items: [{ id: generateId(), name: '', score: 0, level: '', rank: '' }] };
+                                              return c;
+                                            });
+                                            return { ...d, graduationScheme: newScheme };
+                                          });
+                                        }}
+                                        className="py-2 px-6 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-white bg-amber-500 rounded-full hover:bg-amber-600 transition shadow-md shadow-amber-500/20"
+                                      >
+                                        <Plus size={14} /> {t.addAchievement}
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      {comp.items.map((item, itemIdx) => (
+                                        <div key={item.id} className="flex flex-col sm:flex-row gap-2 mb-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                                          <div className="flex-grow">
+                                            <input
+                                              type="text"
+                                              placeholder="Nama Prestasi/Sertifikat"
+                                              value={item.name}
+                                              onChange={(e) => {
+                                                setData(d => {
+                                                  const newScheme = { ...d.graduationScheme };
+                                                  newScheme.components = newScheme.components.map(c => {
+                                                    if (c.id === comp.id) {
+                                                      const newItems = [...c.items];
+                                                      newItems[itemIdx] = { ...newItems[itemIdx], name: e.target.value };
+                                                      return { ...c, items: newItems };
+                                                    }
+                                                    return c;
+                                                  });
+                                                  return { ...d, graduationScheme: newScheme };
+                                                });
+                                              }}
+                                              className="w-full bg-transparent text-sm font-bold outline-none mb-2"
+                                            />
+                                            <div className="flex gap-2">
+                                              <select 
+                                                value={item.level || ''}
+                                                onChange={(e) => {
+                                                  const level = e.target.value;
+                                                  const rank = item.rank || 'Juara 1';
+                                                  const rubricItem = data.achievementRubric.find(r => r.level === level && r.rank === rank);
+                                                  const score = rubricItem ? rubricItem.score : item.score;
+                                                  
+                                                  setData(d => {
+                                                    const newScheme = { ...d.graduationScheme };
+                                                    newScheme.components = newScheme.components.map(c => {
+                                                      if (c.id === comp.id) {
+                                                        const newItems = [...c.items];
+                                                        newItems[itemIdx] = { ...newItems[itemIdx], level, score };
+                                                        return { ...c, items: newItems };
+                                                      }
+                                                      return c;
+                                                    });
+                                                    return { ...d, graduationScheme: newScheme };
+                                                  });
+                                                }}
+                                                className="glass px-2 py-1 rounded text-xs font-bold outline-none border border-slate-200 dark:border-slate-700 w-1/2"
+                                              >
+                                                <option value="">Tingkat</option>
+                                                {Array.from(new Set(data.achievementRubric.map(r => r.level))).map(l => (
+                                                  <option key={l} value={l}>{l}</option>
+                                                ))}
+                                              </select>
+                                              
+                                              <select 
+                                                value={item.rank || ''}
+                                                onChange={(e) => {
+                                                  const rank = e.target.value;
+                                                  const level = item.level || 'Internasional';
+                                                  const rubricItem = data.achievementRubric.find(r => r.level === level && r.rank === rank);
+                                                  const score = rubricItem ? rubricItem.score : item.score;
+                                                  
+                                                  setData(d => {
+                                                    const newScheme = { ...d.graduationScheme };
+                                                    newScheme.components = newScheme.components.map(c => {
+                                                      if (c.id === comp.id) {
+                                                        const newItems = [...c.items];
+                                                        newItems[itemIdx] = { ...newItems[itemIdx], rank, score };
+                                                        return { ...c, items: newItems };
+                                                      }
+                                                      return c;
+                                                    });
+                                                    return { ...d, graduationScheme: newScheme };
+                                                  });
+                                                }}
+                                                className="glass px-2 py-1 rounded text-xs font-bold outline-none border border-slate-200 dark:border-slate-700 w-1/2"
+                                              >
+                                                <option value="">Peringkat</option>
+                                                {Array.from(new Set(data.achievementRubric.map(r => r.rank))).map(r => (
+                                                  <option key={r} value={r}>{r}</option>
+                                                ))}
+                                              </select>
+                                            </div>
+                                          </div>
+                                          <div className="flex sm:flex-col items-center justify-between sm:justify-start gap-2">
+                                            <div className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 font-black px-3 py-1 rounded-lg text-center border border-emerald-200 dark:border-emerald-800/50">
+                                              {item.score}
+                                            </div>
+                                            <button 
+                                              onClick={() => {
+                                                setData(d => {
+                                                  const newScheme = { ...d.graduationScheme };
+                                                  newScheme.components = newScheme.components.map(c => {
+                                                    if (c.id === comp.id) return { ...c, items: c.items.filter((_, i) => i !== itemIdx) };
+                                                    return c;
+                                                  });
+                                                  return { ...d, graduationScheme: newScheme };
+                                                });
+                                              }}
+                                              className="text-rose-500 p-1 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded transition"
+                                            >
+                                              <X size={14} />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                      
+                                      <div className="flex gap-2">
+                                        <button
+                                          onClick={() => {
+                                            setData(d => {
+                                              const newScheme = { ...d.graduationScheme };
+                                              newScheme.components = newScheme.components.map(c => {
+                                                if (c.id === comp.id) return { ...c, items: [...c.items, { id: generateId(), name: '', score: 0, level: '', rank: '' }] };
+                                                return c;
+                                              });
+                                              return { ...d, graduationScheme: newScheme };
+                                            });
+                                          }}
+                                          className="flex-grow py-2 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors border border-dashed border-indigo-200 dark:border-indigo-800"
+                                        >
+                                          <Plus size={14} /> {t.addAchievement}
+                                        </button>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          
+                          {comp.enabled && comp.aggregation !== 'manual' && comp.items.length > 0 && (
+                            <div className="mt-3 text-[10px] text-slate-400 font-bold uppercase flex justify-between space-x-2">
+                                <span>Agregasi: {comp.aggregation}</span>
+                                
+                                {(() => {
+                                  let compScore = 0;
+                                  if (comp.aggregation === 'highest') {
+                                    compScore = Math.max(...comp.items.map(i => i.score));
+                                  } else if (comp.aggregation === 'sum_capped') {
+                                    compScore = Math.min(100, comp.items.reduce((a, i) => a + i.score, 0));
+                                  } else {
+                                    compScore = comp.items.reduce((a, i) => a + i.score, 0) / comp.items.length;
+                                  }
+                                  return <span>Total Komponen: {compScore.toFixed(2)}</span>
+                                })()}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="mt-8 text-center px-4 max-w-2xl mx-auto">
+                <p className="text-xs font-medium text-slate-400 italic">
+                  * {t.schemeDisclaimer}
+                </p>
+              </div>
+            </section>
+          </motion.div>
+        )}
+        </AnimatePresence>
+
       </main>
 
       {/* Popups */}
@@ -1155,7 +1777,7 @@ const App: React.FC = () => {
                   className="w-full p-4 sm:p-6 bg-slate-50 dark:bg-slate-800 rounded-2xl text-lg sm:text-2xl font-bold text-center outline-none focus:ring-4 ring-indigo-500/20 border-2 border-slate-200 dark:border-slate-700 transition-all"
                   onKeyDown={e => e.key === 'Enter' && tempName.trim() && saveName()} />
                 <button onClick={saveName} disabled={!tempName.trim()}
-                  className={`w-full py-4 sm:py-5 rounded-2xl font-bold uppercase tracking-[0.2em] shadow-lg text-sm sm:text-base transition-all ${
+                  className={`w-full py-4 sm:py-5 rounded-2xl font-bold uppercase tracking-wider shadow-lg text-sm transition-all ${
                     tempName.trim() ? 'bg-gradient-to-r from-indigo-600 to-pink-500 text-white hover:-translate-y-1 hover:shadow-indigo-500/20' : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                   }`}>
                   {t.start}
@@ -1291,6 +1913,65 @@ const App: React.FC = () => {
               <div className="mt-8 sm:mt-10 pt-4 sm:pt-6 border-t border-slate-100 dark:border-slate-800 text-right">
                 <button onClick={() => setActiveModal(null)} className="w-full sm:w-auto px-8 py-3 sm:py-4 bg-gradient-to-r from-indigo-600 to-pink-500 text-white rounded-xl font-bold uppercase tracking-widest text-xs sm:text-sm hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-500/20 transition-all">
                   {t.closeLabel}
+                </button>
+              </div>
+            </div>
+          </Modal>
+        )}
+
+        {activeModal === 'rubric' && (
+          <Modal onClose={() => setActiveModal(null)} maxWidth="max-w-3xl">
+            <div className="py-2 sm:py-4 text-left glass rounded-3xl p-6 sm:p-8 border-none overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 blur-3xl rounded-full pointer-events-none"></div>
+              
+              <div className="flex items-center gap-4 mb-6 sm:mb-8 border-b border-slate-100 dark:border-slate-800 pb-4 sm:pb-6 relative z-10">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-2xl flex items-center justify-center border border-amber-200 dark:border-amber-800">
+                  <Award size={20} strokeWidth={2.5} className="sm:w-6 sm:h-6" />
+                </div>
+                <div>
+                  <h4 className="text-xl sm:text-2xl font-black uppercase tracking-tight">{t.achievementRubric}</h4>
+                  <p className="text-xs sm:text-sm font-bold text-slate-500 uppercase tracking-widest">Tabel Konversi Skor Prestasi</p>
+                </div>
+              </div>
+              
+              <div className="max-h-[50vh] overflow-y-auto no-scrollbar pr-2 mb-6 border border-slate-200 dark:border-slate-800 rounded-2xl relative z-10">
+                <table className="w-full text-left border-collapse min-w-max">
+                  <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 z-10 shadow-sm">
+                    <tr className="uppercase text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400">
+                      <th className="py-4 px-6 border-b border-slate-200 dark:border-slate-700">{t.level}</th>
+                      <th className="py-4 px-6 border-b border-slate-200 dark:border-slate-700">{t.rank}</th>
+                      <th className="py-4 px-6 border-b border-slate-200 dark:border-slate-700 w-32">{t.score}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+                    {data.achievementRubric.map((item, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                        <td className="py-3 px-6 text-sm font-bold text-slate-700 dark:text-slate-300">{item.level}</td>
+                        <td className="py-3 px-6 text-sm font-bold text-slate-700 dark:text-slate-300">{item.rank}</td>
+                        <td className="py-3 px-6">
+                          <input
+                            type="number"
+                            min="0" max="100"
+                            value={item.score}
+                            onChange={(e) => {
+                              setData(d => {
+                                const newRubric = [...d.achievementRubric];
+                                newRubric[idx] = { ...newRubric[idx], score: parseFloat(e.target.value) || 0 };
+                                return { ...d, achievementRubric: newRubric };
+                              });
+                            }}
+                            className="w-full glass px-3 py-2 rounded-xl text-center font-bold text-indigo-600 outline-none border-2 border-transparent focus:border-indigo-500 bg-white dark:bg-slate-800 relative z-10"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="text-center sm:text-right relative z-10 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <button onClick={() => setActiveModal(null)} className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-2xl font-bold uppercase tracking-widest text-xs transition-all shadow-lg shadow-amber-500/20 hover:-translate-y-1">
+                  {t.save}
                 </button>
               </div>
             </div>
