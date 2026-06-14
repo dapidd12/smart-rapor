@@ -28,6 +28,7 @@ export interface ScoreComponent {
   label: string;
   enabled: boolean;
   weight: number;
+  scoringMethod?: 'weight' | 'bonus_points' | 'bonus_percentage';
   aggregation: 'average' | 'sum_capped' | 'highest' | 'manual';
   manualScore?: number;
   items: ScoreItem[];

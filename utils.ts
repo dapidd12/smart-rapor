@@ -75,47 +75,29 @@ export const defaultAchievementRubric: AchievementRubric[] = [
 
 export const defaultGraduationSchemes: GraduationScheme[] = [
   {
-    id: 'snbp-2026',
-    name: 'SNBP 2026 — Default Nasional',
+    id: 'custom',
+    name: 'Skema Penilaian',
     components: [
-      { id: 'c1', type: 'rapor', label: 'Nilai Rapor', enabled: true, weight: 50, aggregation: 'average', items: [] },
-      { id: 'c2', type: 'tka', label: 'Tes Kemampuan Akademik (TKA)', enabled: true, weight: 30, aggregation: 'average', items: [] },
-      { id: 'c3', type: 'supporting', label: 'Mapel Pendukung Prodi', enabled: true, weight: 10, aggregation: 'average', items: [] },
-      { id: 'c4', type: 'achievement', label: 'Prestasi / Sertifikat', enabled: true, weight: 10, aggregation: 'highest', items: [] },
-      { id: 'c5', type: 'tpa', label: 'Tes Potensi Akademik (TPA)', enabled: false, weight: 0, aggregation: 'manual', manualScore: 0, items: [] },
-    ]
-  },
-  {
-    id: 'spmb-jatim',
-    name: 'SPMB Jatim SMA — Prestasi Akademik',
-    components: [
-      { id: 'c1', type: 'rapor', label: 'Nilai Rapor', enabled: true, weight: 60, aggregation: 'average', items: [] },
-      { id: 'c2', type: 'tka', label: 'Tes Kemampuan Akademik (TKA)', enabled: true, weight: 40, aggregation: 'average', items: [] },
+      { id: 'c1', type: 'rapor', label: 'Nilai Rapor', enabled: true, weight: 100, aggregation: 'average', items: [] },
+      { id: 'c2', type: 'tka', label: 'Tes Kemampuan Akademik (TKA)', enabled: false, weight: 0, aggregation: 'average', items: [] },
       { id: 'c3', type: 'supporting', label: 'Mapel Pendukung Prodi', enabled: false, weight: 0, aggregation: 'average', items: [] },
       { id: 'c4', type: 'achievement', label: 'Prestasi / Sertifikat', enabled: false, weight: 0, aggregation: 'highest', items: [] },
       { id: 'c5', type: 'tpa', label: 'Tes Potensi Akademik (TPA)', enabled: false, weight: 0, aggregation: 'manual', manualScore: 0, items: [] },
-    ]
-  },
-  {
-    id: 'custom',
-    name: 'Custom / Mandiri',
-    components: [
-      { id: 'c1', type: 'rapor', label: 'Nilai Rapor', enabled: true, weight: 0, aggregation: 'average', items: [] },
-      { id: 'c2', type: 'tka', label: 'Tes Kemampuan Akademik (TKA)', enabled: true, weight: 0, aggregation: 'average', items: [] },
-      { id: 'c3', type: 'supporting', label: 'Mapel Pendukung Prodi', enabled: true, weight: 0, aggregation: 'average', items: [] },
-      { id: 'c4', type: 'achievement', label: 'Prestasi / Sertifikat', enabled: true, weight: 0, aggregation: 'highest', items: [] },
-      { id: 'c5', type: 'tpa', label: 'Tes Potensi Akademik (TPA)', enabled: true, weight: 0, aggregation: 'manual', manualScore: 0, items: [] },
     ]
   }
 ];
 
 export const calculateFinalScore = (scheme: GraduationScheme, overallRaporAvg: number): {
   total: number;
-  breakdown: { id: string; label: string; score: number; weight: number; contribution: number }[];
+  breakdown: { id: string; label: string; score: number; weight: number; contribution: number; isBonus?: boolean }[];
   isWeightValid: boolean;
 } => {
   const enabled = scheme.components.filter(c => c.enabled);
-  const totalWeight = enabled.reduce((a, c) => a + c.weight, 0);
+  // Only validate weight for components that use the 'weight' scoring method
+  const weightedComps = enabled.filter(c => !c.scoringMethod || c.scoringMethod === 'weight');
+  const totalWeight = weightedComps.reduce((a, c) => a + c.weight, 0);
+
+  let baseTotal = 0;
 
   const breakdown = enabled.map(c => {
     let score = 0;
@@ -131,11 +113,30 @@ export const calculateFinalScore = (scheme: GraduationScheme, overallRaporAvg: n
       score = c.items.length > 0 ? c.items.reduce((a, i) => a + i.score, 0) / c.items.length : 0;
     }
 
-    return { id: c.id, label: c.label, score, weight: c.weight, contribution: (score * c.weight) / 100 };
+    let contribution = 0;
+    const method = c.scoringMethod || 'weight';
+    if (method === 'weight') {
+      contribution = (score * c.weight) / 100;
+      baseTotal += contribution;
+    }
+
+    return { id: c.id, label: c.label, score, weight: c.weight, contribution, method };
+  });
+
+  breakdown.forEach(b => {
+    if (b.method === 'bonus_points') {
+      b.contribution = b.score;
+    } else if (b.method === 'bonus_percentage') {
+      b.contribution = baseTotal * (b.score / 100);
+    }
   });
 
   const total = breakdown.reduce((a, b) => a + b.contribution, 0);
-  return { total, breakdown, isWeightValid: Math.abs(totalWeight - 100) < 0.01 };
+  return { 
+    total, 
+    breakdown: breakdown.map(b => ({ id: b.id, label: b.label, score: b.score, weight: b.weight, contribution: b.contribution, isBonus: b.method !== 'weight' })), 
+    isWeightValid: Math.abs(totalWeight - 100) < 0.01 || weightedComps.length === 0 
+  };
 };
 
 export const translations: Record<'id' | 'en', any> = {
@@ -258,7 +259,11 @@ export const translations: Record<'id' | 'en', any> = {
     evalDevelopingTitle: "Berkembang",
     evalDevelopingDesc: "Kerja bagus! Kamu sudah berada di jalur yang tepat dan sangat dekat dengan targetmu. Sedikit dorongan ekstra dan fokus yang lebih tajam akan membawamu mencapai tujuan.",
     evalNeedsImprovementTitle: "Perlu Ditingkatkan",
-    evalNeedsImprovementDesc: "Jangan menyerah! Setiap ahli pernah menjadi pemula. Evaluasi kembali strategi belajarmu, perbanyak latihan, dan jangan ragu untuk meminta bantuan. Kamu pasti bisa bangkit!"
+    evalNeedsImprovementDesc: "Jangan menyerah! Setiap ahli pernah menjadi pemula. Evaluasi kembali strategi belajarmu, perbanyak latihan, dan jangan ragu untuk meminta bantuan. Kamu pasti bisa bangkit!",
+    scoringMethod: "Metode Penilaian",
+    scoringWeight: "Bobot (%)",
+    scoringBonusPoints: "Bonus (+ Poin)",
+    scoringBonusPercent: "Bonus (+ %)",
   },
   en: {
     welcome: "Welcome",
@@ -379,6 +384,10 @@ export const translations: Record<'id' | 'en', any> = {
     evalDevelopingTitle: "Developing",
     evalDevelopingDesc: "Great job! You are on the right track and very close to your target. A little extra push and sharper focus will get you there.",
     evalNeedsImprovementTitle: "Needs Improvement",
-    evalNeedsImprovementDesc: "Don't give up! Every expert was once a beginner. Re-evaluate your study strategy, practice more, and don't hesitate to ask for help. You can do this!"
+    evalNeedsImprovementDesc: "Don't give up! Every expert was once a beginner. Re-evaluate your study strategy, practice more, and don't hesitate to ask for help. You can do this!",
+    scoringMethod: "Scoring Method",
+    scoringWeight: "Weight (%)",
+    scoringBonusPoints: "Bonus (+ Pts)",
+    scoringBonusPercent: "Bonus (+ %)",
   }
 };

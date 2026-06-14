@@ -761,9 +761,11 @@ const App: React.FC = () => {
                       {breakdown.map(item => (
                         <tr key={item.id}>
                           <td className="py-2 px-3 border border-slate-300 font-bold uppercase">{item.label}</td>
-                          <td className="text-center py-2 border border-slate-300">{item.weight}%</td>
-                          <td className="text-center py-2 border border-slate-300">{item.score.toFixed(2)}</td>
-                          <td className="text-center font-bold text-indigo-600 py-2 border border-slate-300">{item.contribution.toFixed(2)}</td>
+                          <td className="text-center py-2 border border-slate-300">{item.isBonus ? 'Bonus' : item.weight + '%'}</td>
+                          <td className="text-center py-2 border border-slate-300">{item.isBonus ? '-' : item.score.toFixed(2)}</td>
+                          <td className="text-center font-bold text-indigo-600 py-2 border border-slate-300">
+                            {item.contribution > 0 ? '+' : ''}{item.contribution.toFixed(2)}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -1261,24 +1263,6 @@ const App: React.FC = () => {
                   <h3 className="text-xl sm:text-2xl font-bold tracking-tight uppercase">{t.graduationPlan}</h3>
                   <p className="text-sm font-medium text-slate-500 mt-1">{t.finalScoreEstimate}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-slate-400">{t.selectPreset}:</span>
-                  <select
-                    className="glass border-2 border-slate-200/50 dark:border-slate-700/50 focus:border-indigo-500 rounded-xl px-3 py-2 text-sm font-bold bg-transparent outline-none cursor-pointer"
-                    value={data.graduationScheme.id}
-                    onChange={(e) => {
-                      const scheme = defaultGraduationSchemes.find(s => s.id === e.target.value);
-                      if (scheme) {
-                        setData(d => ({ ...d, graduationScheme: scheme }));
-                      }
-                    }}
-                  >
-                    <option value="custom">Custom / Mandiri</option>
-                    {defaultGraduationSchemes.map(s => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
-                </div>
               </div>
 
               {(() => {
@@ -1304,16 +1288,16 @@ const App: React.FC = () => {
                           <button
                             onClick={() => {
                               // Simple auto-balance: set to custom, and distribute remaining weight or scale
-                              const currentTotal = data.graduationScheme.components.filter(c => c.enabled).reduce((sum, c) => sum + c.weight, 0);
+                              // Only distribute weight to components that use 'weight' scoring method
+                              const weightedComps = data.graduationScheme.components.filter(c => c.enabled && (!c.scoringMethod || c.scoringMethod === 'weight'));
+                              const currentTotal = weightedComps.reduce((sum, c) => sum + c.weight, 0);
                               if (currentTotal === 0) return; // avoid division by zero
                               
                               setData(d => {
                                 const newScheme = { ...d.graduationScheme, id: 'custom', name: 'Custom / Mandiri' };
-                                let remaining = 100;
-                                const enabledComps = newScheme.components.filter(c => c.enabled);
                                 
                                 newScheme.components = newScheme.components.map(c => {
-                                  if (!c.enabled) return c;
+                                  if (!c.enabled || (c.scoringMethod && c.scoringMethod !== 'weight')) return c;
                                   const proportional = (c.weight / currentTotal) * 100;
                                   return { ...c, weight: parseFloat(proportional.toFixed(1)) };
                                 });
@@ -1351,7 +1335,7 @@ const App: React.FC = () => {
                               <span className="font-bold uppercase tracking-wide text-sm">{comp.label}</span>
                             </div>
                             
-                            {comp.enabled && (
+                            {comp.enabled && (!comp.scoringMethod || comp.scoringMethod === 'weight') && (
                               <div className="flex items-center gap-2">
                                 <span className="text-[10px] font-bold text-slate-400 uppercase">{t.weightLabel}</span>
                                 <input
@@ -1371,6 +1355,13 @@ const App: React.FC = () => {
                                   className="w-16 glass px-2 py-1 text-center font-bold text-indigo-600 rounded-lg outline-none focus:border-indigo-500 border-2 border-transparent"
                                 />
                                 <span className="text-xs font-bold text-slate-400">%</span>
+                              </div>
+                            )}
+                            {comp.enabled && comp.scoringMethod && comp.scoringMethod !== 'weight' && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-emerald-500 uppercase">
+                                  {comp.scoringMethod === 'bonus_points' ? (t.scoringBonusPoints || 'Bonus (+ Poin)') : (t.scoringBonusPercent || 'Bonus (+ %)')}
+                                </span>
                               </div>
                             )}
                           </div>
@@ -1565,7 +1556,27 @@ const App: React.FC = () => {
                               
                               {comp.type === 'achievement' && (
                                 <div>
-                                  <div className="flex justify-end mb-3">
+                                  <div className="flex justify-between items-center mb-3">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 whitespace-nowrap">{t.scoringMethod || 'Penilaian'}:</span>
+                                      <select
+                                        className="glass px-2 py-1 rounded text-xs font-bold outline-none border border-slate-200 dark:border-slate-700"
+                                        value={comp.scoringMethod || 'weight'}
+                                        onChange={(e) => {
+                                          setData(d => {
+                                            const newScheme = { ...d.graduationScheme, id: 'custom' };
+                                            newScheme.components = newScheme.components.map(c => 
+                                              c.id === comp.id ? { ...c, scoringMethod: e.target.value as any } : c
+                                            );
+                                            return { ...d, graduationScheme: newScheme };
+                                          });
+                                        }}
+                                      >
+                                        <option value="weight">{t.scoringWeight || 'Bobot (%)'}</option>
+                                        <option value="bonus_points">{t.scoringBonusPoints || 'Bonus (+ Poin)'}</option>
+                                        <option value="bonus_percentage">{t.scoringBonusPercent || 'Bonus (+ %)'}</option>
+                                      </select>
+                                    </div>
                                     <button
                                       onClick={() => setActiveModal('rubric')}
                                       className="py-1 px-3 flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
